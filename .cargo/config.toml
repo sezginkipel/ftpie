@@ -1,0 +1,9 @@
+[target.x86_64-pc-windows-msvc]
+rustflags = [
+  # MSVC standart x64 lib'leri eksik, onecore versiyonu kullan
+  "-Clink-arg=/LIBPATH:D:\\Program Files\\Microsoft Visual Studio\\18\\Community\\VC\\Tools\\MSVC\\14.50.35717\\lib\\onecore\\x64",
+  # Windows SDK UCRT
+  "-Clink-arg=/LIBPATH:C:\\Program Files (x86)\\Windows Kits\\10\\Lib\\10.0.26100.0\\ucrt\\x64",
+  # Windows SDK UM (kernel32.lib vb.)
+  "-Clink-arg=/LIBPATH:C:\\Program Files (x86)\\Windows Kits\\10\\Lib\\10.0.26100.0\\um\\x64",
+]

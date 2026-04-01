@@ -1,0 +1,18 @@
+{
+  "permissions": {
+    "allow": [
+      "mcp__claude_ai_Context7__resolve-library-id",
+      "mcp__claude_ai_Context7__query-docs",
+      "Bash(cargo check:*)",
+      "Bash(rustup show:*)",
+      "Bash(rustup target:*)",
+      "Bash(rustup default:*)",
+      "Read(//c/Program Files \\(x86\\)/Windows Kits//**)",
+      "Bash(/dev/null ls:*)",
+      "Bash(ls:*)",
+      "Bash(head -5 ls '/c/Program Files \\(x86\\)/Windows Kits/10/Lib/10.0.26100.0/um/x64/')",
+      "Bash(choco install:*)",
+      "Bash(/dev/null find:*)"
+    ]
+  }
+}
