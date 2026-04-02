@@ -8,7 +8,7 @@ license = "Apache-2.0"
 
 [lib]
 name = "ftpie_lib"
-crate-type = ["staticlib", "cdylib", "rlib"]
+crate-type = ["rlib"]
 
 [[bin]]
 name = "ftpie"
@@ -21,18 +21,11 @@ tokio = { version = "1", features = ["full"] }
 # FTP/FTPS (sync API, run via spawn_blocking)
 suppaftp = { version = "6", features = ["secure"] }
 
-# SFTP (via SSH) - temporarily disabled for build
-# russh = "0.45"
-# russh-sftp = "2"
+# Git
+git2 = { version = "0.19", features = ["vendored-openssl"] }
 
-# Git - temporarily disabled for build
-# git2 = { version = "0.19", features = ["vendored-openssl"] }
-
-# HTTP client (AI API calls, WebDAV, collaboration WS) - temporarily disabled
-# reqwest = { version = "0.12", features = ["json", "rustls-tls", "stream"] }
-
-# WebSocket (session sharing) - temporarily disabled
-# tokio-tungstenite = { version = "0.24", features = ["native-tls"] }
+# HTTP client (AI API calls)
+reqwest = { version = "0.12", features = ["json", "rustls-tls", "stream"] }
 
 # Serialization
 serde = { version = "1", features = ["derive"] }
@@ -42,9 +35,6 @@ serde_json = "1"
 aes-gcm = "0.10"
 argon2 = "0.5"
 base64 = "0.22"
-
-# File watching (auto-sync) - temporarily disabled
-# notify = "7"
 
 # Scripting engine (automation DSL)
 rhai = { version = "1", features = ["sync"] }
@@ -83,4 +73,3 @@ dirs = "5"
 
 [build-dependencies]
 tauri-build = { version = "2", features = [] }
-

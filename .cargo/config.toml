@@ -1,9 +1,16 @@
-[target.x86_64-pc-windows-msvc]
+[target.x86_64-pc-windows-gnu]
+# Sistem MSYS2 GCC + LLD
+linker = "C:\\msys64\\mingw64\\bin\\gcc.exe"
 rustflags = [
-  # MSVC standart x64 lib'leri eksik, onecore versiyonu kullan
-  "-Clink-arg=/LIBPATH:D:\\Program Files\\Microsoft Visual Studio\\18\\Community\\VC\\Tools\\MSVC\\14.50.35717\\lib\\onecore\\x64",
-  # Windows SDK UCRT
-  "-Clink-arg=/LIBPATH:C:\\Program Files (x86)\\Windows Kits\\10\\Lib\\10.0.26100.0\\ucrt\\x64",
-  # Windows SDK UM (kernel32.lib vb.)
-  "-Clink-arg=/LIBPATH:C:\\Program Files (x86)\\Windows Kits\\10\\Lib\\10.0.26100.0\\um\\x64",
+    "-Clink-arg=-fuse-ld=lld",
+    # PE header'da main thread stack'ini 64 MB olarak ayarla
+    # (Rhai init + debug build büyük frame'leri için)
+    "-Clink-arg=-Wl,--stack",
+    "-Clink-arg=67108864",
 ]
+
+[env]
+CC  = "C:\\msys64\\mingw64\\bin\\gcc.exe"
+CXX = "C:\\msys64\\mingw64\\bin\\g++.exe"
+AR  = "C:\\msys64\\mingw64\\bin\\ar.exe"
+CARGO_TARGET_DIR = "F:\\ftpie-target"

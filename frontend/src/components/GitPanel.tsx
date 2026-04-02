@@ -30,7 +30,7 @@ interface DeployResult {
   files: Array<{ local_path: string; remote_path: string; status: string; size: number }>;
 }
 
-export function GitPanel() {
+export function GitPanel({ onClose }: { onClose: () => void }) {
   const { activeSessionId } = useSessionStore();
   const [repoPath, setRepoPath] = useState<string>("");
   const [status, setStatus] = useState<GitStatus | null>(null);
@@ -99,7 +99,12 @@ export function GitPanel() {
   };
 
   return (
-    <div className="flex flex-col h-full text-sm">
+    <div className="w-72 border-l border-border bg-card flex flex-col text-sm">
+      {/* Header */}
+      <div className="flex items-center justify-between px-3 py-2 border-b border-border">
+        <span className="font-medium">🌿 Git Deploy</span>
+        <button onClick={onClose} className="text-muted-foreground hover:text-foreground text-lg leading-none">×</button>
+      </div>
       {/* Repo seçimi */}
       <div className="p-3 border-b border-border space-y-2">
         <div className="flex gap-2">

@@ -19,9 +19,9 @@ impl FtpSession {
         let mut stream = FtpStream::connect(&addr)
             .with_context(|| format!("cannot connect to {}", addr))?;
 
-        let password = config.password.as_deref().unwrap_or("");
+        let password = config.password.clone().unwrap_or_default();
         stream
-            .login(&config.username, password)
+            .login(&config.username, &password)
             .context("FTP login failed")?;
 
         if config.passive_mode {
@@ -108,9 +108,10 @@ impl FtpSession {
 
     pub fn chmod(&mut self, path: &str, permissions: u32) -> Result<()> {
         // SITE CHMOD komutu çoğu FTP sunucusunda desteklenir
-        let cmd = format!("SITE CHMOD {:o} {}", permissions, path);
+        // suppaftp v6: custom_command ile SITE CHMOD gönderilir
+        let cmd = format!("CHMOD {:o} {}", permissions, path);
         self.stream
-            .site_command(&cmd)
+            .custom_command(&format!("SITE {}", cmd), &[suppaftp::Status::CommandOk])
             .with_context(|| format!("CHMOD failed for {}", path))?;
         Ok(())
     }

@@ -2,6 +2,11 @@
 members = ["src-tauri"]
 resolver = "2"
 
+[profile.dev]
+# Debug build'de stack frame boyutlarını düşür (Rhai + büyük dep ağacı için)
+opt-level = 1
+overflow-checks = false
+
 [profile.release]
 opt-level = 3
 lto = true

@@ -6,6 +6,11 @@ import { TransferQueue } from "./components/TransferQueue";
 import { StatusBar } from "./components/StatusBar";
 import { Sidebar } from "./components/Sidebar";
 import { AiAssistant } from "./components/AiAssistant";
+import { EditorPane } from "./components/EditorPane";
+import { GitPanel } from "./components/GitPanel";
+import { ScriptManager } from "./components/ScriptManager";
+import { CollaborationPanel } from "./components/CollaborationPanel";
+import { useSessionStore } from "./store/sessionStore";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -15,30 +20,62 @@ const queryClient = new QueryClient({
 
 export default function App() {
   const [aiOpen, setAiOpen] = useState(false);
+  const [gitOpen, setGitOpen] = useState(false);
+  const [scriptOpen, setScriptOpen] = useState(false);
+  const [collabOpen, setCollabOpen] = useState(false);
+  const { activeSessionId } = useSessionStore();
 
   return (
     <QueryClientProvider client={queryClient}>
-      <div className="flex flex-col h-screen bg-background text-foreground overflow-hidden">
-        {/* Top bar: connection + actions */}
-        <ConnectionBar onAiClick={() => setAiOpen(true)} />
+      <div className="flex flex-col h-screen bg-background text-foreground overflow-hidden select-none">
+        {/* Top bar */}
+        <ConnectionBar
+          onAiClick={() => setAiOpen((v) => !v)}
+          onScriptClick={() => setScriptOpen(true)}
+          onGitClick={() => setGitOpen((v) => !v)}
+          onCollabClick={() => setCollabOpen((v) => !v)}
+        />
 
         {/* Main area */}
         <div className="flex flex-1 overflow-hidden">
-          {/* Left sidebar: bookmarks, git branches */}
+          {/* Left sidebar: bookmarks */}
           <Sidebar />
 
-          {/* Center: dual-pane file manager */}
-          <div className="flex-1 flex flex-col overflow-hidden">
-            <FilePanels />
-            <TransferQueue />
+          {/* Center column */}
+          <div className="flex-1 flex flex-col overflow-hidden min-w-0">
+            {/* File panels take remaining space above editor */}
+            <div className="flex-1 flex flex-col overflow-hidden">
+              <FilePanels />
+              <TransferQueue />
+            </div>
+
+            {/* Monaco editor pane — only shown when tabs are open */}
+            <EditorPane />
           </div>
 
-          {/* Right: AI assistant panel (collapsible) */}
-          {aiOpen && <AiAssistant onClose={() => setAiOpen(false)} />}
+          {/* Right panels — stacked side panels */}
+          <div className="flex">
+            {gitOpen && (
+              <GitPanel onClose={() => setGitOpen(false)} />
+            )}
+            {collabOpen && (
+              <CollaborationPanel onClose={() => setCollabOpen(false)} />
+            )}
+            {aiOpen && (
+              <AiAssistant
+                onClose={() => setAiOpen(false)}
+                currentRemotePath={undefined}
+                selectedFiles={[]}
+              />
+            )}
+          </div>
         </div>
 
         {/* Status bar */}
         <StatusBar />
+
+        {/* Script Manager modal */}
+        {scriptOpen && <ScriptManager onClose={() => setScriptOpen(false)} />}
       </div>
     </QueryClientProvider>
   );
