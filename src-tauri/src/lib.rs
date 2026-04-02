@@ -3,6 +3,7 @@ mod bookmarks;
 mod collaboration;
 mod commands;
 mod crypto;
+mod deploy_history;
 mod ftp;
 mod git;
 mod scripting;

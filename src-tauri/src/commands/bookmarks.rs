@@ -97,6 +97,8 @@ pub async fn connect_bookmark(
         password,
         protocol: format!("{:?}", bookmark.protocol).to_lowercase(),
         passive_mode: Some(true),
+        private_key_path: None,
+        key_passphrase: None,
     };
 
     crate::commands::connection::connect(args, state).await.map(|r| r.session_id)

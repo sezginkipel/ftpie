@@ -1,24 +1,21 @@
-use crate::ftp::RemoteFile;
 use crate::state::AppState;
 use serde::{Deserialize, Serialize};
 use tauri::State;
+
+// Tüm dosya işlemleri SessionKind.method() üzerinden dispatch edilir.
+// FTP → spawn_blocking, SFTP → doğrudan async.
 
 #[tauri::command]
 pub async fn list_remote(
     session_id: String,
     path: String,
     state: State<'_, AppState>,
-) -> Result<Vec<RemoteFile>, String> {
-    let session_arc = state
+) -> Result<Vec<crate::ftp::RemoteFile>, String> {
+    let session = state
         .get_session(&session_id)
-        .ok_or_else(|| format!("session not found: {}", session_id))?;
+        .ok_or_else(|| format!("oturum bulunamadı: {}", session_id))?;
 
-    tokio::task::spawn_blocking(move || {
-        let mut session = session_arc.lock().unwrap();
-        session.list(&path).map_err(|e| e.to_string())
-    })
-    .await
-    .map_err(|e| e.to_string())?
+    session.list(&path).await
 }
 
 #[tauri::command]
@@ -55,25 +52,18 @@ pub async fn upload(
     remote_path: String,
     state: State<'_, AppState>,
 ) -> Result<String, String> {
-    let session_arc = state
+    let session = state
         .get_session(&session_id)
-        .ok_or_else(|| format!("session not found: {}", session_id))?;
+        .ok_or_else(|| format!("oturum bulunamadı: {}", session_id))?;
 
     let transfer_id = uuid::Uuid::new_v4().to_string();
     let tid = transfer_id.clone();
 
-    tokio::task::spawn_blocking(move || {
-        let local = std::path::Path::new(&local_path);
-        let mut session = session_arc.lock().unwrap();
-        session
-            .upload_local(local, &remote_path)
-            .map_err(|e| e.to_string())?;
-        tracing::info!(transfer_id = %tid, local = %local_path, remote = %remote_path, "upload complete");
-        Ok::<_, String>(())
-    })
-    .await
-    .map_err(|e| e.to_string())??;
+    session
+        .upload_local(std::path::PathBuf::from(&local_path), &remote_path)
+        .await?;
 
+    tracing::info!(transfer_id = %tid, local = %local_path, remote = %remote_path, "yükleme tamamlandı");
     Ok(transfer_id)
 }
 
@@ -84,25 +74,18 @@ pub async fn download(
     local_path: String,
     state: State<'_, AppState>,
 ) -> Result<String, String> {
-    let session_arc = state
+    let session = state
         .get_session(&session_id)
-        .ok_or_else(|| format!("session not found: {}", session_id))?;
+        .ok_or_else(|| format!("oturum bulunamadı: {}", session_id))?;
 
     let transfer_id = uuid::Uuid::new_v4().to_string();
     let tid = transfer_id.clone();
 
-    tokio::task::spawn_blocking(move || {
-        let local = std::path::Path::new(&local_path);
-        let mut session = session_arc.lock().unwrap();
-        session
-            .download_to_local(&remote_path, local)
-            .map_err(|e| e.to_string())?;
-        tracing::info!(transfer_id = %tid, remote = %remote_path, local = %local_path, "download complete");
-        Ok::<_, String>(())
-    })
-    .await
-    .map_err(|e| e.to_string())??;
+    session
+        .download_to_local(&remote_path, std::path::PathBuf::from(&local_path))
+        .await?;
 
+    tracing::info!(transfer_id = %tid, remote = %remote_path, local = %local_path, "indirme tamamlandı");
     Ok(transfer_id)
 }
 
@@ -113,20 +96,15 @@ pub async fn delete_remote(
     is_dir: bool,
     state: State<'_, AppState>,
 ) -> Result<(), String> {
-    let session_arc = state
+    let session = state
         .get_session(&session_id)
-        .ok_or_else(|| format!("session not found: {}", session_id))?;
+        .ok_or_else(|| format!("oturum bulunamadı: {}", session_id))?;
 
-    tokio::task::spawn_blocking(move || {
-        let mut session = session_arc.lock().unwrap();
-        if is_dir {
-            session.delete_dir(&path).map_err(|e| e.to_string())
-        } else {
-            session.delete_file(&path).map_err(|e| e.to_string())
-        }
-    })
-    .await
-    .map_err(|e| e.to_string())?
+    if is_dir {
+        session.delete_dir(&path).await
+    } else {
+        session.delete_file(&path).await
+    }
 }
 
 #[tauri::command]
@@ -136,16 +114,11 @@ pub async fn rename_remote(
     to: String,
     state: State<'_, AppState>,
 ) -> Result<(), String> {
-    let session_arc = state
+    let session = state
         .get_session(&session_id)
-        .ok_or_else(|| format!("session not found: {}", session_id))?;
+        .ok_or_else(|| format!("oturum bulunamadı: {}", session_id))?;
 
-    tokio::task::spawn_blocking(move || {
-        let mut session = session_arc.lock().unwrap();
-        session.rename(&from, &to).map_err(|e| e.to_string())
-    })
-    .await
-    .map_err(|e| e.to_string())?
+    session.rename(&from, &to).await
 }
 
 #[tauri::command]
@@ -154,16 +127,11 @@ pub async fn mkdir_remote(
     path: String,
     state: State<'_, AppState>,
 ) -> Result<(), String> {
-    let session_arc = state
+    let session = state
         .get_session(&session_id)
-        .ok_or_else(|| format!("session not found: {}", session_id))?;
+        .ok_or_else(|| format!("oturum bulunamadı: {}", session_id))?;
 
-    tokio::task::spawn_blocking(move || {
-        let mut session = session_arc.lock().unwrap();
-        session.mkdir(&path).map_err(|e| e.to_string())
-    })
-    .await
-    .map_err(|e| e.to_string())?
+    session.mkdir(&path).await
 }
 
 #[tauri::command]
@@ -173,16 +141,11 @@ pub async fn chmod_remote(
     permissions: u32,
     state: State<'_, AppState>,
 ) -> Result<(), String> {
-    let session_arc = state
+    let session = state
         .get_session(&session_id)
-        .ok_or_else(|| format!("session not found: {}", session_id))?;
+        .ok_or_else(|| format!("oturum bulunamadı: {}", session_id))?;
 
-    tokio::task::spawn_blocking(move || {
-        let mut session = session_arc.lock().unwrap();
-        session.chmod(&path, permissions).map_err(|e| e.to_string())
-    })
-    .await
-    .map_err(|e| e.to_string())?
+    session.chmod(&path, permissions).await
 }
 
 #[derive(Debug, Serialize)]

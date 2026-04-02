@@ -71,5 +71,13 @@ hex = "0.4"
 # Dirs (config path)
 dirs = "5"
 
+# SFTP / SSH (Faz 2.1 + 2.2)
+russh = "0.44"
+russh-sftp = "2"
+ssh-key = { version = "0.6", features = ["ed25519"] }
+
+# WebSocket (Faz 2.4 işbirliği)
+tokio-tungstenite = "0.24"
+
 [build-dependencies]
 tauri-build = { version = "2", features = [] }

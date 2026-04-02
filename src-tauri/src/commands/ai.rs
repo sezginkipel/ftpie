@@ -64,60 +64,30 @@ pub async fn ai_apply_action(
 ) -> Result<String, String> {
     match action {
         AiAction::RenameFile { from, to, .. } => {
-            let session_arc = state
-                .get_session(&session_id)
-                .ok_or("session not found")?;
-            tokio::task::spawn_blocking(move || {
-                session_arc.lock().unwrap().rename(&from, &to).map_err(|e| e.to_string())
-            })
-            .await
-            .map_err(|e| e.to_string())??;
-            Ok(format!("Renamed successfully"))
+            let session = state.get_session(&session_id).ok_or("session not found")?;
+            session.rename(&from, &to).await?;
+            Ok("Renamed successfully".to_string())
         }
         AiAction::DeleteFile { path, .. } => {
-            let session_arc = state
-                .get_session(&session_id)
-                .ok_or("session not found")?;
-            tokio::task::spawn_blocking(move || {
-                session_arc.lock().unwrap().delete_file(&path).map_err(|e| e.to_string())
-            })
-            .await
-            .map_err(|e| e.to_string())??;
-            Ok(format!("Deleted successfully"))
+            let session = state.get_session(&session_id).ok_or("session not found")?;
+            session.delete_file(&path).await?;
+            Ok("Deleted successfully".to_string())
         }
         AiAction::CreateDirectory { path } => {
-            let session_arc = state
-                .get_session(&session_id)
-                .ok_or("session not found")?;
-            tokio::task::spawn_blocking(move || {
-                session_arc.lock().unwrap().mkdir(&path).map_err(|e| e.to_string())
-            })
-            .await
-            .map_err(|e| e.to_string())??;
-            Ok(format!("Directory created"))
+            let session = state.get_session(&session_id).ok_or("session not found")?;
+            session.mkdir(&path).await?;
+            Ok("Directory created".to_string())
         }
         AiAction::MoveFile { from, to, .. } => {
-            let session_arc = state
-                .get_session(&session_id)
-                .ok_or("session not found")?;
-            tokio::task::spawn_blocking(move || {
-                session_arc.lock().unwrap().rename(&from, &to).map_err(|e| e.to_string())
-            })
-            .await
-            .map_err(|e| e.to_string())??;
-            Ok(format!("Moved successfully"))
+            let session = state.get_session(&session_id).ok_or("session not found")?;
+            session.rename(&from, &to).await?;
+            Ok("Moved successfully".to_string())
         }
         AiAction::ChangePermissions { path, mode, .. } => {
             let perms = u32::from_str_radix(&mode, 8).map_err(|_| "invalid permission mode")?;
-            let session_arc = state
-                .get_session(&session_id)
-                .ok_or("session not found")?;
-            tokio::task::spawn_blocking(move || {
-                session_arc.lock().unwrap().chmod(&path, perms).map_err(|e| e.to_string())
-            })
-            .await
-            .map_err(|e| e.to_string())??;
-            Ok(format!("Permissions changed"))
+            let session = state.get_session(&session_id).ok_or("session not found")?;
+            session.chmod(&path, perms).await?;
+            Ok("Permissions changed".to_string())
         }
         AiAction::RunScript { source, .. } => {
             let result = tokio::task::spawn_blocking(move || crate::scripting::run_script(&source))
@@ -127,16 +97,11 @@ pub async fn ai_apply_action(
             Ok(format!("Script ran: {} log entries", result.0.len()))
         }
         AiAction::UploadFile { local, remote } => {
-            let session_arc = state
-                .get_session(&session_id)
-                .ok_or("session not found")?;
-            tokio::task::spawn_blocking(move || {
-                let path = std::path::Path::new(&local);
-                session_arc.lock().unwrap().upload_local(path, &remote).map_err(|e| e.to_string())
-            })
-            .await
-            .map_err(|e| e.to_string())??;
-            Ok(format!("File uploaded"))
+            let session = state.get_session(&session_id).ok_or("session not found")?;
+            session
+                .upload_local(std::path::PathBuf::from(&local), &remote)
+                .await?;
+            Ok("File uploaded".to_string())
         }
     }
 }

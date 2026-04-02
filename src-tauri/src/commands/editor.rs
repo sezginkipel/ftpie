@@ -29,22 +29,14 @@ pub async fn editor_open_file(
     remote_path: String,
     state: State<'_, AppState>,
 ) -> Result<EditorFile, String> {
-    let session_arc = state
+    let session = state
         .get_session(&session_id)
-        .ok_or_else(|| format!("session not found: {}", session_id))?;
+        .ok_or_else(|| format!("oturum bulunamadı: {}", session_id))?;
 
-    let path = remote_path.clone();
-
-    let bytes = tokio::task::spawn_blocking(move || {
-        let mut session = session_arc.lock().unwrap();
-        session.read_file_bytes(&path).map_err(|e| e.to_string())
-    })
-    .await
-    .map_err(|e| e.to_string())??;
+    let bytes = session.read_file_bytes(&remote_path).await?;
 
     let is_binary = is_binary_content(&bytes);
     let content = if is_binary {
-        // Binary dosyalar için base64
         base64::Engine::encode(&base64::engine::general_purpose::STANDARD, &bytes)
     } else {
         String::from_utf8_lossy(&bytes).into_owned()
@@ -63,7 +55,7 @@ pub async fn editor_open_file(
     })
 }
 
-/// Editördeki içeriği uzak dosyaya kaydet (otomatik upload)
+/// Editördeki içeriği uzak dosyaya kaydet
 #[tauri::command]
 pub async fn editor_save_file(
     session_id: String,
@@ -71,24 +63,16 @@ pub async fn editor_save_file(
     content: String,
     state: State<'_, AppState>,
 ) -> Result<SaveResult, String> {
-    let session_arc = state
+    let session = state
         .get_session(&session_id)
-        .ok_or_else(|| format!("session not found: {}", session_id))?;
+        .ok_or_else(|| format!("oturum bulunamadı: {}", session_id))?;
 
     let bytes = content.into_bytes();
     let hash = sha256_hex(&bytes);
-    let path = remote_path.clone();
 
-    let bytes_written = tokio::task::spawn_blocking(move || {
-        let mut session = session_arc.lock().unwrap();
-        session
-            .write_file_bytes(&path, &bytes)
-            .map_err(|e| e.to_string())
-    })
-    .await
-    .map_err(|e| e.to_string())??;
+    let bytes_written = session.write_file_bytes(&remote_path, bytes).await?;
 
-    tracing::info!(path = %remote_path, bytes = %bytes_written, "file saved via editor");
+    tracing::info!(path = %remote_path, bytes = %bytes_written, "dosya editörden kaydedildi");
     Ok(SaveResult {
         bytes_written,
         new_hash: hash,
@@ -121,55 +105,31 @@ fn compute_diff(original: &str, current: &str) -> Vec<DiffLine> {
     let curr_lines: Vec<&str> = current.lines().collect();
 
     let mut result = Vec::new();
-
-    // LCS-based diff (simplified: Myers'ın O(ND) yerine naive karşılaştırma)
     let mut i = 0;
     let mut j = 0;
+
     while i < orig_lines.len() || j < curr_lines.len() {
         match (orig_lines.get(i), curr_lines.get(j)) {
             (Some(&a), Some(&b)) if a == b => {
-                result.push(DiffLine {
-                    line_number: j + 1,
-                    kind: DiffKind::Unchanged,
-                    content: b.to_string(),
-                });
-                i += 1;
-                j += 1;
+                result.push(DiffLine { line_number: j + 1, kind: DiffKind::Unchanged, content: b.to_string() });
+                i += 1; j += 1;
             }
             (Some(&a), Some(&b)) => {
-                result.push(DiffLine {
-                    line_number: i + 1,
-                    kind: DiffKind::Removed,
-                    content: a.to_string(),
-                });
-                result.push(DiffLine {
-                    line_number: j + 1,
-                    kind: DiffKind::Added,
-                    content: b.to_string(),
-                });
-                i += 1;
-                j += 1;
+                result.push(DiffLine { line_number: i + 1, kind: DiffKind::Removed, content: a.to_string() });
+                result.push(DiffLine { line_number: j + 1, kind: DiffKind::Added, content: b.to_string() });
+                i += 1; j += 1;
             }
             (None, Some(&b)) => {
-                result.push(DiffLine {
-                    line_number: j + 1,
-                    kind: DiffKind::Added,
-                    content: b.to_string(),
-                });
+                result.push(DiffLine { line_number: j + 1, kind: DiffKind::Added, content: b.to_string() });
                 j += 1;
             }
             (Some(&a), None) => {
-                result.push(DiffLine {
-                    line_number: i + 1,
-                    kind: DiffKind::Removed,
-                    content: a.to_string(),
-                });
+                result.push(DiffLine { line_number: i + 1, kind: DiffKind::Removed, content: a.to_string() });
                 i += 1;
             }
             (None, None) => break,
         }
     }
-
     result
 }
 
@@ -180,7 +140,6 @@ fn sha256_hex(data: &[u8]) -> String {
 }
 
 fn is_binary_content(data: &[u8]) -> bool {
-    // İlk 8000 byte kontrol et, NULL byte varsa binary say
     let sample = &data[..data.len().min(8000)];
     sample.contains(&0)
 }

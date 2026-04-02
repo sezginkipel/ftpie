@@ -1,3 +1,4 @@
+use crate::deploy_history::{DeployedFileRecord, DeployFileStatus as HistoryFileStatus, DeployRecord};
 use crate::git::{self, ChangedFile, FileStatus, GitStatus};
 use crate::state::AppState;
 use serde::{Deserialize, Serialize};
@@ -114,6 +115,17 @@ pub async fn deploy_branch(
     .await
     .map_err(|e| e.to_string())??;
 
+    // Oturumu bir kez al (Clone = sadece Arc kopyalanır)
+    let session = if !args.dry_run {
+        Some(
+            state
+                .get_session(&args.session_id)
+                .ok_or_else(|| format!("session not found: {}", args.session_id))?,
+        )
+    } else {
+        None
+    };
+
     let total = changed.len();
     let mut uploaded = 0;
     let mut skipped = 0;
@@ -151,35 +163,20 @@ pub async fn deploy_branch(
             continue;
         }
 
-        let session_arc = match state.get_session(&args.session_id) {
-            Some(s) => s,
-            None => {
-                return Err(format!("session not found: {}", args.session_id));
+        let sess = session.as_ref().unwrap();
+
+        // Remote üst dizini oluştur (zaten varsa hatayı yoksay)
+        if let Some(parent) = std::path::Path::new(&remote_path).parent() {
+            let parent_str = parent.to_string_lossy().to_string();
+            if parent_str != "/" && !parent_str.is_empty() {
+                let _ = sess.mkdir(&parent_str).await;
             }
-        };
+        }
 
-        let lp = local_path.clone();
-        let rp = remote_path.clone();
-
-        let result = tokio::task::spawn_blocking(move || {
-            let local = std::path::Path::new(&lp);
-            let mut session = session_arc.lock().unwrap();
-
-            // Remote dizinini oluştur (gerekirse)
-            if let Some(parent) = std::path::Path::new(&rp).parent() {
-                let parent_str = parent.to_string_lossy().to_string();
-                if parent_str != "/" && !parent_str.is_empty() {
-                    let _ = session.mkdir(&parent_str); // hata ignore (zaten var olabilir)
-                }
-            }
-
-            session
-                .upload_local(local, &rp)
-                .map_err(|e| e.to_string())
-        })
-        .await
-        .map_err(|e| e.to_string())
-        .and_then(|r| r);
+        let result = sess
+            .upload_local(std::path::PathBuf::from(&local_path), &remote_path)
+            .await
+            .map_err(|e| e.to_string());
 
         match result {
             Ok(size) => {
@@ -222,6 +219,45 @@ pub async fn deploy_branch(
     }
 
     tracing::info!(uploaded, skipped, failed, "deploy complete");
+
+    // 3. Deploy geçmişine kaydet
+    if !args.dry_run {
+        let host = session
+            .as_ref()
+            .map(|s| s.host())
+            .unwrap_or_else(|| args.session_id.clone());
+
+        let record = DeployRecord {
+            id: uuid::Uuid::new_v4().to_string(),
+            timestamp: chrono::Utc::now().to_rfc3339(),
+            server_host: host,
+            server_user: String::new(),
+            repo_path: args.repo_path.clone(),
+            remote_base_path: args.remote_base_path.clone(),
+            git_ref: args.since_ref.clone(),
+            uploaded,
+            skipped,
+            failed,
+            files: results
+                .iter()
+                .map(|f| DeployedFileRecord {
+                    local_path: f.local_path.clone(),
+                    remote_path: f.remote_path.clone(),
+                    status: match &f.status {
+                        DeployFileStatus::Done => HistoryFileStatus::Done,
+                        DeployFileStatus::Skipped => HistoryFileStatus::Skipped,
+                        DeployFileStatus::Failed { .. } => HistoryFileStatus::Failed,
+                        DeployFileStatus::Uploading => HistoryFileStatus::Failed,
+                    },
+                    size: f.size,
+                })
+                .collect(),
+        };
+        if let Err(e) = crate::deploy_history::save_record(record) {
+            tracing::warn!("deploy geçmişi kaydedilemedi: {}", e);
+        }
+    }
+
     Ok(DeployResult {
         uploaded,
         skipped,

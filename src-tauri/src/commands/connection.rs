@@ -1,4 +1,5 @@
 use crate::ftp::{client::FtpSession, types::ConnectionConfig, Protocol};
+use crate::sftp::SftpSession;
 use crate::state::AppState;
 use serde::{Deserialize, Serialize};
 use tauri::State;
@@ -11,12 +12,16 @@ pub struct ConnectArgs {
     pub password: Option<String>,
     pub protocol: String,
     pub passive_mode: Option<bool>,
+    /// SSH özel anahtar yolu (opsiyonel, SFTP için)
+    pub private_key_path: Option<String>,
+    pub key_passphrase: Option<String>,
 }
 
 #[derive(Debug, Serialize)]
 pub struct ConnectResult {
     pub session_id: String,
     pub server_welcome: Option<String>,
+    pub protocol: String,
 }
 
 #[tauri::command]
@@ -26,28 +31,67 @@ pub async fn connect(
 ) -> Result<ConnectResult, String> {
     let protocol = parse_protocol(&args.protocol)?;
 
+    match protocol {
+        Protocol::Sftp => connect_sftp(args, state).await,
+        _ => connect_ftp(args, state, protocol).await,
+    }
+}
+
+async fn connect_ftp(
+    args: ConnectArgs,
+    state: State<'_, AppState>,
+    protocol: Protocol,
+) -> Result<ConnectResult, String> {
     let config = ConnectionConfig {
         host: args.host.clone(),
         port: args.port,
         username: args.username.clone(),
         password: args.password.clone(),
-        protocol: protocol.clone(),
+        protocol,
         passive_mode: args.passive_mode.unwrap_or(true),
         timeout_secs: 30,
     };
 
-    // Blocking işlem — spawn_blocking içinde çalıştır
     let session = tokio::task::spawn_blocking(move || FtpSession::connect(config))
         .await
         .map_err(|e| e.to_string())?
         .map_err(|e| e.to_string())?;
 
-    let session_id = state.add_session(session);
+    let session_id = state.add_ftp_session(session);
+    tracing::info!(session_id = %session_id, host = %args.host, protocol = %args.protocol, "FTP oturumu oluşturuldu");
 
-    tracing::info!(session_id = %session_id, host = %args.host, "session created");
     Ok(ConnectResult {
         session_id,
         server_welcome: None,
+        protocol: args.protocol,
+    })
+}
+
+async fn connect_sftp(
+    args: ConnectArgs,
+    state: State<'_, AppState>,
+) -> Result<ConnectResult, String> {
+    let config = ConnectionConfig {
+        host: args.host.clone(),
+        port: args.port,
+        username: args.username.clone(),
+        password: args.password.clone(),
+        protocol: Protocol::Sftp,
+        passive_mode: false,
+        timeout_secs: 30,
+    };
+
+    let session = SftpSession::connect(config)
+        .await
+        .map_err(|e| e.to_string())?;
+
+    let session_id = state.add_sftp_session(session);
+    tracing::info!(session_id = %session_id, host = %args.host, "SFTP oturumu oluşturuldu");
+
+    Ok(ConnectResult {
+        session_id,
+        server_welcome: None,
+        protocol: "sftp".to_string(),
     })
 }
 
@@ -56,19 +100,9 @@ pub async fn disconnect(
     session_id: String,
     state: State<'_, AppState>,
 ) -> Result<(), String> {
-    let session_arc = state
-        .get_session(&session_id)
-        .ok_or_else(|| format!("session not found: {}", session_id))?;
-
-    tokio::task::spawn_blocking(move || {
-        let mut session = session_arc.lock().unwrap();
-        session.disconnect().map_err(|e| e.to_string())
-    })
-    .await
-    .map_err(|e| e.to_string())??;
-
+    // Oturumu state'den çıkar (Arc drop → bağlantı kapanır)
     state.remove_session(&session_id);
-    tracing::info!(session_id = %session_id, "session closed");
+    tracing::info!(session_id = %session_id, "oturum kapatıldı");
     Ok(())
 }
 
@@ -80,6 +114,6 @@ fn parse_protocol(s: &str) -> Result<Protocol, String> {
         "sftp" => Ok(Protocol::Sftp),
         "webdav" => Ok(Protocol::WebDav),
         "s3" => Ok(Protocol::S3),
-        _ => Err(format!("unknown protocol: {}", s)),
+        _ => Err(format!("bilinmeyen protokol: {}", s)),
     }
 }
