@@ -31,6 +31,7 @@ interface BookmarkState {
     localPath?: string;
     tags?: string[];
   }) => Promise<Bookmark>;
+  update: (bookmark: Bookmark) => Promise<void>;
   delete: (id: string) => Promise<void>;
   connectBookmark: (id: string, masterPassword: string) => Promise<string>;
   exportEncrypted: (masterPassword: string) => Promise<string>;
@@ -68,6 +69,13 @@ export const useBookmarkStore = create<BookmarkState>((set, get) => ({
     });
     set((s) => ({ bookmarks: [...s.bookmarks, bm] }));
     return bm;
+  },
+
+  async update(bookmark) {
+    await invoke("update_bookmark", { bookmark });
+    set((s) => ({
+      bookmarks: s.bookmarks.map((b) => (b.id === bookmark.id ? bookmark : b)),
+    }));
   },
 
   async delete(id) {

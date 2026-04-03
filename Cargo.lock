@@ -1429,6 +1429,7 @@ dependencies = [
  "futures",
  "git2",
  "hex",
+ "native-tls",
  "reqwest 0.12.28",
  "rhai",
  "russh",
@@ -5200,6 +5201,7 @@ dependencies = [
  "futures-lite",
  "lazy-regex",
  "log",
+ "native-tls",
  "thiserror 2.0.18",
 ]
 

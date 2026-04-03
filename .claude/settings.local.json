@@ -50,7 +50,20 @@
       "Bash(cmd //c \"tasklist | findstr ftpie\")",
       "Bash(echo \"EXIT: $?\")",
       "Bash(echo \"=== EXIT: $?==\")",
-      "Bash(cmd //c \"tasklist | findstr -i ftpie\")"
+      "Bash(cmd //c \"tasklist | findstr -i ftpie\")",
+      "Bash(npx tauri:*)",
+      "Bash(taskkill /F /IM ftpie.exe)",
+      "Bash(taskkill /F /IM node.exe)",
+      "Bash(cmd /c \"taskkill /F /IM ftpie.exe\")",
+      "Bash(cmd /c \"taskkill /F /IM node.exe\")",
+      "Bash(cmd /c \"handle64.exe F:\\\\ftpie-target\\\\debug\\\\build\\\\ftpie-f7711f93892d2cdd\\\\out\\\\libresource.a\")",
+      "Bash(cmd /c \"fuser F:\\\\ftpie-target\\\\debug\\\\build\\\\ftpie-f7711f93892d2cdd\\\\out\\\\libresource.a\")",
+      "Bash(rm -rf \"F:/ftpie-target/debug/build/ftpie-f7711f93892d2cdd\")",
+      "Bash(rm -rf \"F:/ftpie-target/debug/build/ftpie-9a9388adb81731b5\")",
+      "Bash(rm -f \"F:/ftpie-target/debug/build/ftpie-f7711f93892d2cdd/out/libresource.a\")",
+      "Bash(rm -f \"F:/ftpie-target/debug/build/ftpie-9a9388adb81731b5/out/libresource.a\")",
+      "Bash(cmd /c \"netstat -ano | findstr :5173\")",
+      "Bash(cmd:*)"
     ]
   }
 }

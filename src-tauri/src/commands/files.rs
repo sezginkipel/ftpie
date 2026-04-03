@@ -156,3 +156,22 @@ pub struct LocalFile {
     pub is_dir: bool,
     pub is_symlink: bool,
 }
+
+/// Windows sürücü harflerini listeler (A:/ … Z:/)
+/// Unix'te her zaman boş döner.
+#[tauri::command]
+pub async fn list_drives() -> Vec<String> {
+    #[cfg(target_os = "windows")]
+    {
+        let mut drives = Vec::new();
+        for letter in b'A'..=b'Z' {
+            let path = format!("{}:/", letter as char);
+            if std::path::Path::new(&path).exists() {
+                drives.push(path);
+            }
+        }
+        return drives;
+    }
+    #[cfg(not(target_os = "windows"))]
+    Vec::new()
+}

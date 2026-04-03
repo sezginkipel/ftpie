@@ -42,6 +42,7 @@ async fn connect_ftp(
     state: State<'_, AppState>,
     protocol: Protocol,
 ) -> Result<ConnectResult, String> {
+    let timeout_secs = 20u64;
     let config = ConnectionConfig {
         host: args.host.clone(),
         port: args.port,
@@ -49,13 +50,17 @@ async fn connect_ftp(
         password: args.password.clone(),
         protocol,
         passive_mode: args.passive_mode.unwrap_or(true),
-        timeout_secs: 30,
+        timeout_secs,
     };
 
-    let session = tokio::task::spawn_blocking(move || FtpSession::connect(config))
-        .await
-        .map_err(|e| e.to_string())?
-        .map_err(|e| e.to_string())?;
+    let session = tokio::time::timeout(
+        std::time::Duration::from_secs(timeout_secs),
+        tokio::task::spawn_blocking(move || FtpSession::connect(config)),
+    )
+    .await
+    .map_err(|_| format!("FTP bağlantı zaman aşımı: {}:{}", args.host, args.port))?
+    .map_err(|e| e.to_string())?
+    .map_err(|e| e.to_string())?;
 
     let session_id = state.add_ftp_session(session);
     tracing::info!(session_id = %session_id, host = %args.host, protocol = %args.protocol, "FTP oturumu oluşturuldu");
@@ -71,6 +76,7 @@ async fn connect_sftp(
     args: ConnectArgs,
     state: State<'_, AppState>,
 ) -> Result<ConnectResult, String> {
+    let timeout_secs = 20u64;
     let config = ConnectionConfig {
         host: args.host.clone(),
         port: args.port,
@@ -78,12 +84,16 @@ async fn connect_sftp(
         password: args.password.clone(),
         protocol: Protocol::Sftp,
         passive_mode: false,
-        timeout_secs: 30,
+        timeout_secs,
     };
 
-    let session = SftpSession::connect(config)
-        .await
-        .map_err(|e| e.to_string())?;
+    let session = tokio::time::timeout(
+        std::time::Duration::from_secs(timeout_secs),
+        SftpSession::connect(config),
+    )
+    .await
+    .map_err(|_| format!("SFTP bağlantı zaman aşımı: {}:{}", args.host, args.port))?
+    .map_err(|e| e.to_string())?;
 
     let session_id = state.add_sftp_session(session);
     tracing::info!(session_id = %session_id, host = %args.host, "SFTP oturumu oluşturuldu");

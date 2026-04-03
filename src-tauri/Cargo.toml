@@ -19,7 +19,8 @@ path = "src/main.rs"
 tokio = { version = "1", features = ["full"] }
 
 # FTP/FTPS (sync API, run via spawn_blocking)
-suppaftp = { version = "6", features = ["secure"] }
+suppaftp = { version = "6", features = ["native-tls"] }
+native-tls = "0.2"
 
 # Git
 git2 = { version = "0.19", features = ["vendored-openssl"] }
