@@ -60,7 +60,8 @@ export const useBookmarkStore = create<BookmarkState>((set, get) => ({
         port: args.port,
         username: args.username,
         password: args.password,
-        master_password: args.masterPassword,
+        // Boş string ile şifrele — master password sorulmadan otomatik bağlanmak için
+        master_password: args.password ? (args.masterPassword ?? "") : null,
         protocol: args.protocol,
         remote_path: args.remotePath,
         local_path: args.localPath,
@@ -83,7 +84,7 @@ export const useBookmarkStore = create<BookmarkState>((set, get) => ({
     set((s) => ({ bookmarks: s.bookmarks.filter((b) => b.id !== id) }));
   },
 
-  async connectBookmark(id, masterPassword) {
+  async connectBookmark(id, masterPassword = "") {
     return invoke<string>("connect_bookmark", { id, masterPassword });
   },
 

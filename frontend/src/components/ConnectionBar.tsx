@@ -1,5 +1,8 @@
 import { useState } from "react";
 import { useSessionStore } from "../store/sessionStore";
+import { useSettingsStore } from "../store/settingsStore";
+import { SessionTabBar } from "./SessionTabBar";
+import { SettingsModal } from "./SettingsModal";
 
 interface Props {
   onAiClick: () => void;
@@ -9,14 +12,16 @@ interface Props {
 }
 
 export function ConnectionBar({ onAiClick, onScriptClick, onGitClick, onCollabClick }: Props) {
-  const { sessions, activeSessionId, connect, disconnect, setActive } = useSessionStore();
+  const { connect } = useSessionStore();
+  const { settings } = useSettingsStore();
   const [host, setHost] = useState("");
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
-  const [port, setPort] = useState("21");
-  const [protocol, setProtocol] = useState("ftp");
+  const [port, setPort] = useState(String(settings.defaultPort));
+  const [protocol, setProtocol] = useState(settings.defaultProtocol);
   const [connecting, setConnecting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showSettings, setShowSettings] = useState(false);
 
   const handleConnect = async () => {
     if (!host || !username) return;
@@ -37,10 +42,9 @@ export function ConnectionBar({ onAiClick, onScriptClick, onGitClick, onCollabCl
     }
   };
 
-  const activeSession = sessions.find((s) => s.id === activeSessionId);
-
   return (
-    <div className="flex flex-col border-b border-border bg-card">
+    <div className="flex flex-col border-b border-border bg-card shrink-0">
+      {/* Input row */}
       <div className="flex items-center gap-2 px-4 py-2">
         <select
           value={protocol}
@@ -92,38 +96,6 @@ export function ConnectionBar({ onAiClick, onScriptClick, onGitClick, onCollabCl
           {connecting ? "Connecting…" : "Connect"}
         </button>
 
-        {/* Active session indicator + disconnect */}
-        {activeSession && (
-          <div className="flex items-center gap-1.5 text-xs bg-green-950/40 border border-green-800/50 rounded px-2 py-1 shrink-0">
-            <span className="w-1.5 h-1.5 rounded-full bg-green-400" />
-            <span className="text-green-300 truncate max-w-[100px]">
-              {activeSession.username}@{activeSession.host}
-            </span>
-            <button
-              onClick={() => disconnect(activeSession.id)}
-              className="text-red-400 hover:text-red-300 ml-0.5"
-              title="Disconnect"
-            >
-              ×
-            </button>
-          </div>
-        )}
-
-        {/* Multiple sessions switcher */}
-        {sessions.length > 1 && (
-          <select
-            value={activeSessionId ?? ""}
-            onChange={(e) => setActive(e.target.value)}
-            className="text-xs bg-input border border-border rounded px-1.5 py-1 shrink-0"
-          >
-            {sessions.map((s) => (
-              <option key={s.id} value={s.id}>
-                {s.host}
-              </option>
-            ))}
-          </select>
-        )}
-
         {/* Feature buttons */}
         <div className="ml-auto flex items-center gap-1.5 shrink-0">
           <button
@@ -154,8 +126,18 @@ export function ConnectionBar({ onAiClick, onScriptClick, onGitClick, onCollabCl
           >
             ✨ AI
           </button>
+          <button
+            onClick={() => setShowSettings(true)}
+            className="px-2 py-1 text-xs border border-border rounded hover:bg-accent"
+            title="Settings"
+          >
+            ⚙️
+          </button>
         </div>
       </div>
+
+      {/* Session tab bar */}
+      <SessionTabBar />
 
       {/* Error bar */}
       {error && (
@@ -164,6 +146,8 @@ export function ConnectionBar({ onAiClick, onScriptClick, onGitClick, onCollabCl
           <button onClick={() => setError(null)} className="ml-2 text-red-500 hover:text-red-300">✕</button>
         </div>
       )}
+
+      {showSettings && <SettingsModal onClose={() => setShowSettings(false)} />}
     </div>
   );
 }

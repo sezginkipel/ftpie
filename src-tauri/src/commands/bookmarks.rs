@@ -90,12 +90,21 @@ pub async fn connect_bookmark(
         .map_err(|e| format!("cannot decrypt password: {}", e))?;
 
     // connect komutunu yeniden kullan
+    let protocol_str = match bookmark.protocol {
+        crate::ftp::Protocol::Ftp => "ftp",
+        crate::ftp::Protocol::Ftps => "ftps",
+        crate::ftp::Protocol::FtpsImplicit => "ftps_implicit",
+        crate::ftp::Protocol::Sftp => "sftp",
+        crate::ftp::Protocol::WebDav => "webdav",
+        crate::ftp::Protocol::S3 => "s3",
+    };
+
     let args = crate::commands::connection::ConnectArgs {
         host: bookmark.host,
         port: bookmark.port,
         username: bookmark.username,
         password,
-        protocol: format!("{:?}", bookmark.protocol).to_lowercase(),
+        protocol: protocol_str.to_string(),
         passive_mode: Some(true),
         private_key_path: None,
         key_passphrase: None,

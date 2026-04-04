@@ -19,6 +19,7 @@ interface SessionState {
     password?: string;
     protocol: string;
   }) => Promise<string>;
+  addExternalSession: (session: ActiveSession) => void;
   disconnect: (sessionId: string) => Promise<void>;
   setActive: (id: string) => void;
   getActive: () => ActiveSession | null;
@@ -44,6 +45,13 @@ export const useSessionStore = create<SessionState>((set, get) => ({
       activeSessionId: result.session_id,
     }));
     return result.session_id;
+  },
+
+  addExternalSession(session) {
+    set((s) => ({
+      sessions: [...s.sessions.filter((x) => x.id !== session.id), session],
+      activeSessionId: session.id,
+    }));
   },
 
   async disconnect(sessionId) {

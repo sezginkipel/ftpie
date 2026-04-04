@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ConnectionBar } from "./components/ConnectionBar";
 import { FilePanels } from "./components/FilePanels";
@@ -11,6 +11,7 @@ import { GitPanel } from "./components/GitPanel";
 import { ScriptManager } from "./components/ScriptManager";
 import { CollaborationPanel } from "./components/CollaborationPanel";
 import { useSessionStore } from "./store/sessionStore";
+import { useSettingsStore } from "./store/settingsStore";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -24,6 +25,16 @@ export default function App() {
   const [scriptOpen, setScriptOpen] = useState(false);
   const [collabOpen, setCollabOpen] = useState(false);
   const { activeSessionId } = useSessionStore();
+  const { settings } = useSettingsStore();
+
+  useEffect(() => {
+    const html = document.documentElement;
+    const theme = settings.theme === "system"
+      ? (window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light")
+      : settings.theme;
+    html.classList.toggle("dark", theme === "dark");
+    html.classList.toggle("light", theme === "light");
+  }, [settings.theme]);
 
   return (
     <QueryClientProvider client={queryClient}>

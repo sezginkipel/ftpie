@@ -1,4 +1,3 @@
-import { invoke } from "@tauri-apps/api/core";
 import { useEffect, useState } from "react";
 import { useBookmarkStore } from "../store/bookmarkStore";
 import { useSessionStore } from "../store/sessionStore";
@@ -14,6 +13,7 @@ interface AddBookmarkForm {
 
 export function Sidebar() {
   const { bookmarks, load, create, update: updateBookmark, delete: deleteBookmark, connectBookmark } = useBookmarkStore();
+  const { addExternalSession } = useSessionStore();
   const { activeSessionId } = useSessionStore();
   const [gitBranch, setGitBranch] = useState<string>("");
   const [showAdd, setShowAdd] = useState(false);
@@ -58,22 +58,48 @@ export function Sidebar() {
     if (!editingId) return;
     const bm = bookmarks.find((b) => b.id === editingId);
     if (!bm) return;
-    await updateBookmark({ ...bm, name: form.name, host: form.host, port: parseInt(form.port), username: form.username, protocol: form.protocol });
+
+    if (form.password) {
+      // Parola değişti: eskiyi sil, yenisini oluştur
+      await deleteBookmark(editingId);
+      await create({
+        name: form.name, host: form.host, port: parseInt(form.port),
+        username: form.username, password: form.password, protocol: form.protocol,
+      });
+    } else {
+      // Sadece meta güncelle (parola korunuyor)
+      await updateBookmark({ ...bm, name: form.name, host: form.host, port: parseInt(form.port), username: form.username, protocol: form.protocol });
+    }
+
     setEditingId(null);
     setForm({ name: "", host: "", port: "21", username: "", password: "", protocol: "ftp" });
   };
 
+  const doConnect = async (id: string, pwd: string) => {
+    const bm = bookmarks.find((b) => b.id === id);
+    if (!bm) return;
+    const sessionId = await connectBookmark(id, pwd);
+    addExternalSession({ id: sessionId, host: bm.host, protocol: bm.protocol, username: bm.username });
+  };
+
   const handleConnect = async (id: string) => {
-    setShowMasterPwd(id);
+    setConnectingId(id);
+    try {
+      await doConnect(id, "");
+    } catch {
+      setShowMasterPwd(id);
+    } finally {
+      setConnectingId(null);
+    }
   };
 
   const confirmConnect = async () => {
     if (!showMasterPwd) return;
     setConnectingId(showMasterPwd);
     try {
-      await connectBookmark(showMasterPwd, masterPassword);
+      await doConnect(showMasterPwd, masterPassword);
     } catch (err) {
-      alert(`Connection failed: ${err}`);
+      alert(`Bağlantı başarısız: ${err}`);
     } finally {
       setConnectingId(null);
       setShowMasterPwd(null);

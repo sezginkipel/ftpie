@@ -63,7 +63,12 @@
       "Bash(rm -f \"F:/ftpie-target/debug/build/ftpie-f7711f93892d2cdd/out/libresource.a\")",
       "Bash(rm -f \"F:/ftpie-target/debug/build/ftpie-9a9388adb81731b5/out/libresource.a\")",
       "Bash(cmd /c \"netstat -ano | findstr :5173\")",
-      "Bash(cmd:*)"
+      "Bash(cmd:*)",
+      "Bash(taskkill //F //IM ftpie.exe //T)",
+      "Bash(taskkill //F //IM node.exe //T)",
+      "Bash(tasklist)",
+      "Bash(node -e \"const z = require\\('./node_modules/zustand/package.json'\\); console.log\\(z.version\\); console.log\\(Object.keys\\(z.exports\\).filter\\(k=>k.includes\\('persist'\\)\\)\\)\")",
+      "Bash(npx vite:*)"
     ]
   }
 }

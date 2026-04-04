@@ -44,6 +44,12 @@ body {
   user-select: none;
 }
 
+@layer components {
+  .input-sm {
+    @apply text-sm bg-input border border-border rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-primary/50;
+  }
+}
+
 /* Custom scrollbar */
 ::-webkit-scrollbar { width: 6px; height: 6px; }
 ::-webkit-scrollbar-track { background: transparent; }

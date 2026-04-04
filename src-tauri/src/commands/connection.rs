@@ -42,7 +42,8 @@ async fn connect_ftp(
     state: State<'_, AppState>,
     protocol: Protocol,
 ) -> Result<ConnectResult, String> {
-    let timeout_secs = 20u64;
+    let connect_timeout_secs = 15u64; // TCP + TLS handshake için iç timeout
+    let total_timeout_secs = 35u64;   // Login dahil toplam süre
     let config = ConnectionConfig {
         host: args.host.clone(),
         port: args.port,
@@ -50,15 +51,15 @@ async fn connect_ftp(
         password: args.password.clone(),
         protocol,
         passive_mode: args.passive_mode.unwrap_or(true),
-        timeout_secs,
+        timeout_secs: connect_timeout_secs,
     };
 
     let session = tokio::time::timeout(
-        std::time::Duration::from_secs(timeout_secs),
+        std::time::Duration::from_secs(total_timeout_secs),
         tokio::task::spawn_blocking(move || FtpSession::connect(config)),
     )
     .await
-    .map_err(|_| format!("FTP bağlantı zaman aşımı: {}:{}", args.host, args.port))?
+    .map_err(|_| format!("Bağlantı zaman aşımı ({}s): {}:{} — sunucu yanıt vermiyor", total_timeout_secs, args.host, args.port))?
     .map_err(|e| e.to_string())?
     .map_err(|e| e.to_string())?;
 
@@ -76,7 +77,7 @@ async fn connect_sftp(
     args: ConnectArgs,
     state: State<'_, AppState>,
 ) -> Result<ConnectResult, String> {
-    let timeout_secs = 20u64;
+    let total_timeout_secs = 35u64;
     let config = ConnectionConfig {
         host: args.host.clone(),
         port: args.port,
@@ -84,15 +85,15 @@ async fn connect_sftp(
         password: args.password.clone(),
         protocol: Protocol::Sftp,
         passive_mode: false,
-        timeout_secs,
+        timeout_secs: total_timeout_secs,
     };
 
     let session = tokio::time::timeout(
-        std::time::Duration::from_secs(timeout_secs),
+        std::time::Duration::from_secs(total_timeout_secs),
         SftpSession::connect(config),
     )
     .await
-    .map_err(|_| format!("SFTP bağlantı zaman aşımı: {}:{}", args.host, args.port))?
+    .map_err(|_| format!("SFTP bağlantı zaman aşımı ({}s): {}:{}", total_timeout_secs, args.host, args.port))?
     .map_err(|e| e.to_string())?;
 
     let session_id = state.add_sftp_session(session);

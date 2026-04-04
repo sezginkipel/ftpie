@@ -157,6 +157,38 @@ pub struct LocalFile {
     pub is_symlink: bool,
 }
 
+#[tauri::command]
+pub async fn mkdir_local(path: String) -> Result<(), String> {
+    tokio::task::spawn_blocking(move || {
+        std::fs::create_dir_all(&path).map_err(|e| e.to_string())
+    })
+    .await
+    .map_err(|e| e.to_string())?
+}
+
+#[tauri::command]
+pub async fn delete_local(path: String, is_dir: bool) -> Result<(), String> {
+    tokio::task::spawn_blocking(move || {
+        if is_dir {
+            std::fs::remove_dir_all(&path)
+        } else {
+            std::fs::remove_file(&path)
+        }
+        .map_err(|e| e.to_string())
+    })
+    .await
+    .map_err(|e| e.to_string())?
+}
+
+#[tauri::command]
+pub async fn rename_local(from: String, to: String) -> Result<(), String> {
+    tokio::task::spawn_blocking(move || {
+        std::fs::rename(&from, &to).map_err(|e| e.to_string())
+    })
+    .await
+    .map_err(|e| e.to_string())?
+}
+
 /// Windows sürücü harflerini listeler (A:/ … Z:/)
 /// Unix'te her zaman boş döner.
 #[tauri::command]

@@ -35,6 +35,9 @@ pub fn run() {
             commands::files::mkdir_remote,
             commands::files::chmod_remote,
             commands::files::list_drives,
+            commands::files::mkdir_local,
+            commands::files::delete_local,
+            commands::files::rename_local,
             // Feature 6: Monaco Editor
             commands::editor::editor_open_file,
             commands::editor::editor_save_file,
