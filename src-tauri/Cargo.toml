@@ -94,7 +94,7 @@ ssh-key = { version = "0.6", features = ["ed25519"] }
 globset = "0.4"
 
 # Proper LCS line diff for the editor's diff view
-similar = "2"
+similar = "3"
 
 [build-dependencies]
 tauri-build = { version = "2", features = [] }
