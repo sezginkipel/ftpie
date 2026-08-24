@@ -1,0 +1,238 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/*
+ * Design tokens.
+ *
+ * The LIGHT palette is defined on bare `:root`, so no colour's only definition
+ * sits behind a media query or an attribute selector. The dark palette is then
+ * declared twice: once for "system dark, unless the user explicitly chose
+ * light", and once for an explicit `data-theme="dark"`, so an explicit choice
+ * wins in both directions.
+ */
+:root {
+  --bg: #f6f7f9;
+  --surface: #ffffff;
+  --surface-2: #eef0f4;
+  --border: #dce0e7;
+  --border-strong: #c3c9d4;
+  --text: #131720;
+  --text-2: #4a5361;
+  --text-3: #6b7480;
+  --accent: #2563eb;
+  --accent-weak: #e8effe;
+  --ok: #197f48;
+  --warn: #96660d;
+  --danger: #c2382f;
+  --info: #1f6fa8;
+
+  /* Contrasting foreground for a filled accent/danger surface. */
+  --on-accent: #ffffff;
+
+  --font-ui: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto,
+    'Helvetica Neue', Arial, sans-serif;
+  --font-mono: ui-monospace, 'Cascadia Code', 'Cascadia Mono', Consolas,
+    'SFMono-Regular', 'Liberation Mono', Menlo, monospace;
+
+  --row-h: 28px;
+  --toolbar-h: 36px;
+  --statusbar-h: 24px;
+  --radius: 4px;
+
+  color-scheme: light;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) {
+    --bg: #0f1216;
+    --surface: #171b21;
+    --surface-2: #1e242c;
+    --border: #2a313b;
+    --border-strong: #3a434f;
+    --text: #e6eaf0;
+    --text-2: #a8b2c0;
+    --text-3: #78828f;
+    --accent: #6c9cf8;
+    --accent-weak: #1b2a45;
+    --ok: #58c98a;
+    --warn: #dfb154;
+    --danger: #f0796e;
+    --info: #62b0e0;
+
+    --on-accent: #0f1216;
+
+    color-scheme: dark;
+  }
+}
+
+:root[data-theme='dark'] {
+  --bg: #0f1216;
+  --surface: #171b21;
+  --surface-2: #1e242c;
+  --border: #2a313b;
+  --border-strong: #3a434f;
+  --text: #e6eaf0;
+  --text-2: #a8b2c0;
+  --text-3: #78828f;
+  --accent: #6c9cf8;
+  --accent-weak: #1b2a45;
+  --ok: #58c98a;
+  --warn: #dfb154;
+  --danger: #f0796e;
+  --info: #62b0e0;
+
+  --on-accent: #0f1216;
+
+  color-scheme: dark;
+}
+
+@layer base {
+  * {
+    border-color: var(--border);
+  }
+
+  html,
+  body,
+  #root {
+    height: 100%;
+  }
+
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font-ui);
+    /* Base 13px: dense but not cramped, and native-feeling on a desktop. */
+    font-size: 13px;
+    line-height: 1.4;
+    -webkit-font-smoothing: antialiased;
+    /*
+     * No global `select-none`. Text must be selectable — especially error text,
+     * paths and fingerprints, which users need to copy.
+     */
+  }
+
+  /* Focus is always visible, and inset so it is never clipped by a scroller. */
+  :focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: -2px;
+  }
+
+  /* Chrome that must not steal focus rings from the element inside it. */
+  [data-focus-none]:focus-visible {
+    outline: none;
+  }
+
+  /* Every column of numbers aligns. */
+  .tnum,
+  .font-mono,
+  input[type='number'] {
+    font-variant-numeric: tabular-nums;
+  }
+
+  code,
+  kbd,
+  pre,
+  samp {
+    font-family: var(--font-mono);
+  }
+
+  ::placeholder {
+    color: var(--text-3);
+    opacity: 1;
+  }
+
+  ::selection {
+    background: var(--accent-weak);
+    color: var(--text);
+  }
+
+  /* Native controls follow the theme rather than the OS default. */
+  input,
+  textarea,
+  select,
+  button {
+    font: inherit;
+    color: inherit;
+  }
+}
+
+@layer components {
+  /* Icons: 14–16px, currentColor, hairline strokes. */
+  .icon {
+    width: 14px;
+    height: 14px;
+    flex: none;
+    stroke: currentColor;
+    stroke-width: 1.5;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    fill: none;
+  }
+
+  .icon-16 {
+    width: 16px;
+    height: 16px;
+  }
+
+  /* A single dense table row. */
+  .row {
+    height: var(--row-h);
+    display: flex;
+    align-items: center;
+  }
+
+  /* Truncating cell that still allows selection. */
+  .cell-truncate {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+}
+
+/* Transitions stay short, and vanish entirely when the user asks for that. */
+@media (prefers-reduced-motion: no-preference) {
+  .transition-quick {
+    transition-property: background-color, border-color, color, opacity;
+    transition-duration: 120ms;
+    transition-timing-function: ease-out;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Scrollbars: quiet, and visible enough to grab. */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--border-strong);
+  border: 2px solid transparent;
+  background-clip: padding-box;
+  border-radius: 6px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--text-3);
+  background-clip: padding-box;
+}
+
+::-webkit-scrollbar-corner {
+  background: transparent;
+}

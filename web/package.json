@@ -1,0 +1,25 @@
+{
+  "name": "ftpie-web",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite dev",
+    "build": "vite build",
+    "preview": "wrangler dev",
+    "check": "npm run cf-typegen && svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
+    "deploy": "npm run build && wrangler deploy",
+    "cf-typegen": "wrangler types ./src/worker-configuration.d.ts"
+  },
+  "devDependencies": {
+    "@sveltejs/adapter-cloudflare": "^7",
+    "@sveltejs/kit": "^2",
+    "@sveltejs/vite-plugin-svelte": "^5",
+    "@types/node": "^26.2.0",
+    "svelte": "^5",
+    "svelte-check": "^4",
+    "typescript": "^5",
+    "vite": "^6",
+    "wrangler": "^4"
+  }
+}

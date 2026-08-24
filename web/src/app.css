@@ -1,0 +1,251 @@
+/*
+ * Light, drafting-table aesthetic: paper ground, hairline rules, monospace
+ * annotations, one confident blue. Semantic colour is reserved for the two
+ * things that genuinely signal state — an encrypted transport and a cleartext
+ * one — so it never reads as decoration.
+ */
+:root {
+  --paper: #f7f7f4;
+  --card: #ffffff;
+  --wash: #efefe9;
+  --rule: #e0e0d8;
+  --rule-strong: #c7c7bb;
+
+  --ink: #14171c;
+  --ink-2: #4b5158;
+  --ink-3: #838a92;
+
+  --accent: #1b3fd8;
+  --accent-deep: #142fa4;
+  --accent-wash: #e9ecfd;
+
+  --seal: #0d7048;
+  --seal-wash: #e6f2ec;
+  --alert: #b93815;
+  --alert-wash: #fbeee9;
+
+  --font-display: 'Archivo', ui-sans-serif, system-ui, sans-serif;
+  --font-body:
+    ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, 'Cascadia Code', Consolas, monospace;
+
+  --maxw: 1160px;
+  --gut: 28px;
+
+  color-scheme: light;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+  scroll-behavior: smooth;
+}
+
+body {
+  margin: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--font-body);
+  font-size: 16.5px;
+  line-height: 1.62;
+  -webkit-font-smoothing: antialiased;
+}
+
+h1,
+h2,
+h3 {
+  font-family: var(--font-display);
+  font-weight: 650;
+  letter-spacing: -0.028em;
+  line-height: 1.08;
+  text-wrap: balance;
+  margin: 0;
+}
+
+a {
+  color: var(--accent);
+  text-decoration: none;
+}
+a:hover {
+  color: var(--accent-deep);
+}
+
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+  border-radius: 2px;
+}
+
+code,
+kbd,
+.mono {
+  font-family: var(--font-mono);
+  font-variant-ligatures: none;
+}
+
+.tnum {
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── Structure ───────────────────────────────────────────────────────────── */
+
+.wrap {
+  width: 100%;
+  max-width: var(--maxw);
+  margin: 0 auto;
+  padding: 0 var(--gut);
+}
+
+main > section {
+  padding: 104px 0;
+}
+
+/* A hairline that starts at the text column rather than bleeding edge to edge. */
+main > section + section > .wrap {
+  border-top: 1px solid var(--rule);
+  padding-top: 0;
+}
+main > section + section {
+  padding-top: 0;
+}
+main > section + section .sec-head {
+  padding-top: 104px;
+}
+
+/* A drawing number, not a decorative label. */
+.tag {
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  font-weight: 500;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+  margin: 0 0 18px;
+}
+
+h2 {
+  font-size: clamp(1.75rem, 3.6vw, 2.65rem);
+  max-width: 24ch;
+}
+
+.sec-lede {
+  color: var(--ink-2);
+  max-width: 58ch;
+  margin: 18px 0 0;
+  font-size: 1.04rem;
+}
+
+/* ── Buttons ─────────────────────────────────────────────────────────────── */
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  padding: 12px 20px;
+  border-radius: 3px;
+  border: 1px solid transparent;
+  font-family: var(--font-display);
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition:
+    background 140ms ease,
+    border-color 140ms ease,
+    transform 140ms ease;
+}
+.btn:hover {
+  transform: translateY(-1px);
+}
+.btn-primary {
+  background: var(--ink);
+  color: var(--paper);
+}
+.btn-primary:hover {
+  background: var(--accent);
+  color: #fff;
+}
+.btn-ghost {
+  border-color: var(--rule-strong);
+  color: var(--ink);
+}
+.btn-ghost:hover {
+  border-color: var(--ink);
+  color: var(--ink);
+}
+
+/* ── Seals ───────────────────────────────────────────────────────────────── */
+
+.seal {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  padding: 3px 9px;
+  border-radius: 2px;
+}
+.seal-ok {
+  color: var(--seal);
+  background: var(--seal-wash);
+}
+.seal-no {
+  color: var(--alert);
+  background: var(--alert-wash);
+}
+
+/* ── Reveal-on-scroll ────────────────────────────────────────────────────── */
+
+/*
+ * Scoped to `html.js` deliberately. Without JavaScript nothing is hidden, so a
+ * failed or blocked bundle can never leave the page blank.
+ */
+.js [data-reveal] {
+  opacity: 0;
+  transform: translateY(14px);
+  transition:
+    opacity 560ms cubic-bezier(0.22, 0.68, 0.32, 1),
+    transform 560ms cubic-bezier(0.22, 0.68, 0.32, 1);
+  transition-delay: var(--reveal-delay, 0ms);
+  will-change: opacity, transform;
+}
+.js [data-reveal='in'] {
+  opacity: 1;
+  transform: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+  .js [data-reveal] {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@media (max-width: 900px) {
+  main > section {
+    padding: 68px 0;
+  }
+  main > section + section .sec-head {
+    padding-top: 68px;
+  }
+  :root {
+    --gut: 20px;
+  }
+}

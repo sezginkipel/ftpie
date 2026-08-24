@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="tr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ftpie</title>
+    <script>
+      /*
+       * Pre-paint theme resolution.
+       *
+       * The document used to be hardcoded to class="dark", so every light-theme
+       * user saw a dark flash on launch. Read the persisted preference from the
+       * settings store before the first paint instead, and fall back to the OS
+       * setting. Deliberately tiny, synchronous and failure-tolerant: a corrupt
+       * localStorage entry must not stop the app from rendering.
+       */
+      (function () {
+        try {
+          var pref = 'system';
+          var raw = localStorage.getItem('ftpie-settings');
+          if (raw) {
+            var parsed = JSON.parse(raw);
+            var stored = parsed && parsed.state ? parsed.state.theme : null;
+            if (stored === 'light' || stored === 'dark' || stored === 'system') {
+              pref = stored;
+            }
+          }
+          var dark =
+            pref === 'dark' ||
+            (pref === 'system' &&
+              window.matchMedia('(prefers-color-scheme: dark)').matches);
+
+          var root = document.documentElement;
+          // `data-theme` drives the CSS tokens; the `dark` class drives Tailwind's
+          // dark: variant. Only an explicit choice sets data-theme, so "system"
+          // keeps following prefers-color-scheme after launch.
+          if (pref !== 'system') root.setAttribute('data-theme', pref);
+          if (dark) root.classList.add('dark');
+          root.style.backgroundColor = dark ? '#0f1216' : '#f6f7f9';
+        } catch (e) {
+          /* Theme is cosmetic; never let it break startup. */
+        }
+      })();
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

@@ -1,0 +1,102 @@
+[package]
+name = "ftpie"
+version = "0.1.0"
+edition = "2021"
+description = "A modern, git-aware FTP client with AI integration"
+authors = ["ftpie contributors"]
+license = "Apache-2.0"
+
+[lib]
+name = "ftpie_lib"
+crate-type = ["rlib"]
+
+[[bin]]
+name = "ftpie"
+path = "src/main.rs"
+
+[dependencies]
+# Async runtime
+tokio = { version = "1", features = ["full"] }
+
+# FTP/FTPS (sync API, run via spawn_blocking)
+suppaftp = { version = "6", features = ["native-tls"] }
+native-tls = "0.2"
+
+# Git — local repository access only (status, branches, tags, trees, diffs).
+# Nothing here fetches or pushes, so the default `ssh`/`https` transports and the
+# vendored OpenSSL they drag in are dead weight: dropping them removes an entire
+# TLS stack plus libssh2 from the build and the CVE surface.
+git2 = { version = "0.19", default-features = false }
+
+# HTTP client (AI API calls)
+reqwest = { version = "0.12", features = ["json", "rustls-tls", "stream"] }
+
+# Serialization
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+
+# Encryption (credential vault, bookmark sync)
+aes-gcm = "0.10"
+argon2 = "0.5"
+base64 = "0.22"
+# Wipe derived key material on drop rather than leaving it in freed memory
+zeroize = { version = "1", features = ["derive"] }
+
+# Scripting engine (automation DSL)
+rhai = { version = "1", features = ["sync"] }
+
+# Tauri
+# Only the plugins the app actually uses are linked in. The shell and fs plugins
+# were previously compiled in and granted nothing, adding attack surface for no
+# benefit: every file operation goes through this crate's own commands.
+tauri = { version = "2", features = [] }
+tauri-plugin-dialog = "2"
+tauri-plugin-notification = "2"
+
+# Error handling
+anyhow = "1"
+thiserror = "2"
+
+# Logging
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+
+# Async utilities
+futures = "0.3"
+async-trait = "0.1"
+
+# UUID (session IDs, transfer IDs)
+uuid = { version = "1", features = ["v4"] }
+
+# Time
+chrono = { version = "0.4", features = ["serde"] }
+
+# Hashing (diff, file change detection)
+sha2 = "0.10"
+hex = "0.4"
+
+# Dirs (config path)
+dirs = "5"
+
+# SFTP / SSH
+russh = "0.44"
+russh-keys = "0.44"
+russh-sftp = "2"
+ssh-key = { version = "0.6", features = ["ed25519"] }
+
+# Real glob semantics for deploy exclude patterns (was substring matching)
+globset = "0.4"
+
+# Proper LCS line diff for the editor's diff view
+similar = "2"
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[lints.rust]
+# Several modules deliberately expose a complete API that unit tests exercise but
+# no Tauri command wires up yet — `Vault::is_unlocked`, `DeployHistoryStore::clear`,
+# `FtpSession::pwd`, `Bookmark::connection_config` and similar. These are intended
+# module surface, not leftovers, so `dead_code` is allowed here rather than
+# scattering a dozen per-item attributes. Every other lint stays denied in CI.
+dead_code = "allow"

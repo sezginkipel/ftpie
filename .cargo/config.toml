@@ -1,0 +1,33 @@
+# Project-wide cargo configuration. This file IS committed — it holds settings the
+# build is not correct without, including in CI.
+#
+# Machine-specific settings do NOT belong here. Put a build directory override in
+# the `CARGO_TARGET_DIR` environment variable, or in your user-level
+# `%USERPROFILE%\.cargo\config.toml`. See .cargo/config.toml.example.
+
+[target.x86_64-pc-windows-msvc]
+rustflags = [
+    # Tauri's window layer (tao/muda) imports comctl32 **version 6** exports:
+    # TaskDialogIndirect, SetWindowSubclass, RemoveWindowSubclass,
+    # DefSubclassProc. The application binary gets a side-by-side manifest from
+    # tauri-build that requests v6, but `cargo test` binaries get no manifest, so
+    # they load the legacy comctl32 5.82 from WinSxS, fail to resolve those
+    # imports, and die at startup with STATUS_ENTRYPOINT_NOT_FOUND (0xC0000139)
+    # before a single test runs. Declaring the dependency here embeds it in every
+    # binary the crate produces, tests included.
+    "-Clink-arg=/MANIFESTDEPENDENCY:type='win32' name='Microsoft.Windows.Common-Controls' version='6.0.0.0' processorArchitecture='*' publicKeyToken='6595b64144ccf1df' language='*'",
+]
+
+# MinGW fallback. x86_64-pc-windows-msvc is the supported production target
+# (MSI/NSIS bundling and code signing need it); this exists only so the crate can
+# be built with MSYS2 when MSVC is unavailable.
+#
+# Known limitation: the GNU linker has no equivalent of /MANIFESTDEPENDENCY, so
+# `cargo test` binaries built for this target still fail to launch with
+# STATUS_ENTRYPOINT_NOT_FOUND for the reason described above. Run the test suite
+# under the MSVC toolchain:
+#     cargo +stable-x86_64-pc-windows-msvc test
+# `cargo check`/`cargo build` work fine on this target.
+[target.x86_64-pc-windows-gnu]
+linker = "gcc"
+rustflags = ["-Clink-arg=-fuse-ld=lld"]

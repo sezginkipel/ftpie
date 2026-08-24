@@ -1,0 +1,122 @@
+# ---------------------------------------------------------------------------
+# ftpie — LOCAL cargo configuration example
+#
+# Copy to `.cargo/config.toml` and adjust the paths for your machine.
+# The live `.cargo/config.toml` is gitignored on purpose: it holds
+# machine-specific toolchain paths and must never be committed.
+#
+#   cp .cargo/config.toml.example .cargo/config.toml
+# ---------------------------------------------------------------------------
+
+
+# ===========================================================================
+# 1. THE SPACE-IN-PATH GOTCHA  (read this first)
+# ===========================================================================
+#
+# This checkout may live under a path containing a space, e.g.
+#
+#     D:\Backup-4 2026\ftpie
+#
+# When linking with the MinGW toolchain, GCC's `collect2` passes object-file
+# paths to the linker (`lld` / `ld`) without quoting them. A space in the path
+# is therefore split into two arguments and the link fails with confusing
+# "cannot find <fragment>" / "no such file" errors. This is NOT a stack-size
+# problem and NOT a missing-library problem, even though the error text often
+# looks like one.
+#
+# THE FIX: point the build output at a directory whose full path contains no
+# spaces. Everything cargo writes then lives under a safe path.
+#
+#     # PowerShell
+#     $env:CARGO_TARGET_DIR = "C:/ftpie-target"
+#
+#     # bash / MSYS2
+#     export CARGO_TARGET_DIR="C:/ftpie-target"
+#
+# Or persist it via `build.target-dir` below.
+#
+# IMPORTANT: an `[env]` entry for `CARGO_TARGET_DIR` does NOT work. Cargo
+# resolves its target directory before applying `[env]`, so it reads only the
+# real process environment variable or `build.target-dir`. The previous
+# committed config set it under `[env]`, which silently did nothing. Use
+# `build.target-dir` (below) or a real environment variable.
+
+
+# ===========================================================================
+# 2. TARGET SELECTION
+# ===========================================================================
+#
+# `x86_64-pc-windows-msvc` is the RECOMMENDED production target on Windows:
+#   * it is the only Windows target Tauri can bundle to MSI (WiX) and NSIS,
+#   * Authenticode code signing expects MSVC-produced binaries,
+#   * CI (`.github/workflows/*`) builds MSVC.
+#
+# `x86_64-pc-windows-gnu` (MinGW / MSYS2) is a FALLBACK for machines without
+# the MSVC build tools. It cannot produce signed MSI installers.
+#
+# Uncomment ONE of these if you want a default target:
+# [build]
+# target = "x86_64-pc-windows-msvc"
+# target = "x86_64-pc-windows-gnu"
+
+
+# ===========================================================================
+# 3. SPACE-FREE BUILD DIRECTORY (recommended on Windows)
+# ===========================================================================
+# Must be an absolute path with NO spaces. Adjust the drive to taste.
+[build]
+target-dir = "C:/ftpie-target"
+
+
+# ===========================================================================
+# 4. MinGW-ONLY SETTINGS
+# ===========================================================================
+#
+# Everything below is scoped to the GNU target so it cannot leak into an MSVC
+# build. The old committed config declared CC / CXX / AR in a GLOBAL `[env]`
+# block, which forced every build — including MSVC — through MinGW's gcc and
+# broke it. Never do that again: keep toolchain overrides target-scoped.
+#
+# Prerequisites (MSYS2):
+#     pacman -S mingw-w64-x86_64-gcc mingw-w64-x86_64-lld \
+#               mingw-w64-x86_64-pkg-config
+#     rustup target add x86_64-pc-windows-gnu
+#
+# and put MinGW on PATH for the build shell:
+#     export PATH="/c/msys64/mingw64/bin:$PATH"
+#
+# [target.x86_64-pc-windows-gnu]
+# linker = "C:/msys64/mingw64/bin/gcc.exe"
+# rustflags = [
+#     # lld links this dependency tree much faster than ld.bfd
+#     "-Clink-arg=-fuse-ld=lld",
+# ]
+#
+# If you hit a main-thread stack overflow in a *debug* build (large frames in
+# the Rhai engine initialisation), raise the PE stack reservation instead of
+# disabling overflow checks:
+#
+# [target.x86_64-pc-windows-gnu]
+# rustflags = [
+#     "-Clink-arg=-fuse-ld=lld",
+#     "-Clink-arg=-Wl,--stack",
+#     "-Clink-arg=67108864",          # 64 MiB main-thread stack
+# ]
+#
+# Target-scoped C toolchain for crates with build scripts that compile C
+# (`cc`-crate consumers such as libgit2-sys, openssl-sys, ring):
+#
+# [env]
+# # Only meaningful when you build EXCLUSIVELY for the GNU target. Prefer
+# # exporting these in the build shell over putting them here, so an MSVC
+# # build in the same checkout is unaffected.
+# CC_x86_64_pc_windows_gnu  = "C:/msys64/mingw64/bin/gcc.exe"
+# CXX_x86_64_pc_windows_gnu = "C:/msys64/mingw64/bin/g++.exe"
+# AR_x86_64_pc_windows_gnu  = "C:/msys64/mingw64/bin/ar.exe"
+
+
+# ===========================================================================
+# 5. MISC
+# ===========================================================================
+# [net]
+# git-fetch-with-cli = true    # helps behind corporate proxies

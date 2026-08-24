@@ -1,0 +1,73 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "ftpie",
+  "version": "0.1.0",
+  "identifier": "io.ftpie.desktop",
+  "build": {
+    "frontendDist": "../frontend/dist",
+    "devUrl": "http://localhost:5173",
+    "beforeDevCommand": "npm run dev --prefix ../frontend",
+    "beforeBuildCommand": "npm run build --prefix ../frontend"
+  },
+  "app": {
+    "withGlobalTauri": false,
+    "windows": [
+      {
+        "label": "main",
+        "title": "ftpie",
+        "width": 1280,
+        "height": 800,
+        "minWidth": 900,
+        "minHeight": 600,
+        "resizable": true,
+        "decorations": true,
+        "center": true
+      }
+    ],
+    "security": {
+      "csp": {
+        "default-src": "'self'",
+        "script-src": "'self'",
+        "worker-src": "'self' blob:",
+        "child-src": "'self' blob:",
+        "style-src": "'self' 'unsafe-inline'",
+        "font-src": "'self' data:",
+        "img-src": "'self' data: blob: asset: http://asset.localhost",
+        "media-src": "'self' asset: http://asset.localhost",
+        "connect-src": "'self' ipc: http://ipc.localhost https: data: blob:",
+        "object-src": "'none'",
+        "base-uri": "'self'",
+        "form-action": "'none'",
+        "frame-ancestors": "'none'"
+      }
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": "all",
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.icns",
+      "icons/icon.ico"
+    ],
+    "publisher": "ftpie",
+    "shortDescription": "Secure FTP/FTPS/SFTP client with remote editing and git-aware deploy",
+    "longDescription": "ftpie is a desktop file-transfer client supporting FTP, explicit and implicit FTPS, and SFTP with key authentication. It provides an encrypted bookmark vault, Monaco-based remote file editing, git-aware deployment with history and rollback, Rhai automation scripting, and an optional AI assistant.",
+    "category": "DeveloperTool",
+    "copyright": "Licensed under the Apache License, Version 2.0",
+    "licenseFile": "../LICENSE",
+    "windows": {
+      "nsis": {
+        "installMode": "currentUser"
+      }
+    },
+    "linux": {
+      "deb": {
+        "depends": []
+      }
+    }
+  },
+  "plugins": {}
+}

@@ -1,0 +1,16 @@
+[workspace]
+members = ["src-tauri"]
+resolver = "2"
+
+[profile.dev]
+# Keep debug builds of this dependency tree (Rhai, libgit2, russh) usable:
+# opt-level 1 shrinks stack frames substantially without hurting debuggability.
+# Overflow checks stay ENABLED — they are a correctness net, not a build knob.
+opt-level = 1
+
+[profile.release]
+opt-level = 3
+lto = true
+codegen-units = 1
+panic = "abort"
+strip = true

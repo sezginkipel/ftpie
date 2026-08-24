@@ -1,0 +1,87 @@
+# ---------------------------------------------------------------------------
+# Rust / Cargo
+# ---------------------------------------------------------------------------
+debug/
+target/
+**/target/
+# Local out-of-tree target dirs used to work around paths containing spaces
+# (see .cargo/config.toml.example). Keep these space-free.
+/ftpie-target/
+ftpie-target/
+*.rs.bk
+*.pdb
+
+# .cargo/config.toml IS committed: it carries the comctl32 v6 manifest dependency
+# the MSVC target needs for test binaries to launch at all, so CI must see it.
+# Machine-specific settings (a space-free build directory, MinGW paths) belong in
+# the CARGO_TARGET_DIR environment variable or your user-level
+# %USERPROFILE%\.cargo\config.toml — see .cargo/config.toml.example.
+
+# ---------------------------------------------------------------------------
+# Node / frontend
+# ---------------------------------------------------------------------------
+node_modules/
+**/node_modules/
+frontend/dist/
+frontend/.vite/
+.vite/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# ---------------------------------------------------------------------------
+# Tauri build output
+# ---------------------------------------------------------------------------
+src-tauri/gen/schemas/
+src-tauri/target/
+
+# ---------------------------------------------------------------------------
+# Environment / secrets
+# ---------------------------------------------------------------------------
+.env
+.env.*
+!.env.example
+
+# ---------------------------------------------------------------------------
+# Logs
+# ---------------------------------------------------------------------------
+*.log
+logs/
+
+# ---------------------------------------------------------------------------
+# OS junk
+# ---------------------------------------------------------------------------
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+
+# ---------------------------------------------------------------------------
+# Editors / IDEs
+# ---------------------------------------------------------------------------
+#.idea/
+.vscode/*
+!.vscode/extensions.json
+*.swp
+*.swo
+
+# ---------------------------------------------------------------------------
+# Claude Code local state
+# ---------------------------------------------------------------------------
+.claude/settings.local.json
+
+# ---------------------------------------------------------------------------
+# Marketing site (web/) — SvelteKit on Cloudflare Workers
+# ---------------------------------------------------------------------------
+web/.svelte-kit/
+web/.wrangler/
+# Regenerated from wrangler.jsonc by `npm run cf-typegen`, which `npm run check`
+# runs first — so it never needs to be committed (it is ~580 KB of generated
+# runtime types that would churn on every Workers release).
+web/src/worker-configuration.d.ts

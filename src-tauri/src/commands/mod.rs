@@ -1,0 +1,11 @@
+pub mod ai;
+pub mod app;
+pub mod bookmarks;
+pub mod connection;
+pub mod editor;
+pub mod files;
+pub mod git;
+pub mod scripting;
+pub mod transfers;
+pub mod trust;
+pub mod vault;

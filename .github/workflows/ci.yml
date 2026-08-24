@@ -1,0 +1,175 @@
+name: CI
+
+on:
+  push:
+    branches: ['**']
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  CARGO_TERM_COLOR: always
+  RUST_BACKTRACE: 1
+  # Keep incremental compilation off in CI: it bloats the cache and buys nothing.
+  CARGO_INCREMENTAL: 0
+
+jobs:
+  # -------------------------------------------------------------------------
+  # Rust backend: format, lint, test.
+  # -------------------------------------------------------------------------
+  rust:
+    name: rust (${{ matrix.name }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: windows-msvc
+            os: windows-latest
+            target: x86_64-pc-windows-msvc
+          - name: linux
+            os: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+          components: rustfmt, clippy
+
+      # Tauri's Linux backend needs the WebKitGTK stack plus the tray and SVG
+      # libraries; patchelf is used by the AppImage bundler.
+      - name: Install Linux system dependencies
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            libwebkit2gtk-4.1-dev \
+            libappindicator3-dev \
+            librsvg2-dev \
+            patchelf \
+            libssl-dev \
+            libgtk-3-dev \
+            build-essential \
+            curl \
+            wget \
+            file \
+            pkg-config
+
+      - name: Cache cargo registry and git db
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry/index
+            ~/.cargo/registry/cache
+            ~/.cargo/git/db
+          key: cargo-registry-${{ matrix.name }}-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            cargo-registry-${{ matrix.name }}-
+
+      - name: Cache cargo target dir
+        uses: actions/cache@v4
+        with:
+          path: target
+          key: cargo-target-${{ matrix.name }}-${{ hashFiles('**/Cargo.lock') }}-${{ hashFiles('src-tauri/**/*.rs') }}
+          restore-keys: |
+            cargo-target-${{ matrix.name }}-${{ hashFiles('**/Cargo.lock') }}-
+            cargo-target-${{ matrix.name }}-
+
+      # The Rust build has a `beforeBuildCommand`, but `cargo check`/`test` do
+      # not run it. `frontendDist` must still exist for tauri-build, so drop a
+      # placeholder if the frontend has not been built in this job.
+      - name: Ensure frontendDist exists
+        shell: bash
+        run: |
+          mkdir -p frontend/dist
+          [ -f frontend/dist/index.html ] || echo '<!doctype html><title>ci</title>' > frontend/dist/index.html
+
+      - name: cargo fmt --check
+        run: cargo fmt --all -- --check
+
+      - name: cargo clippy
+        run: cargo clippy --workspace --all-targets --target ${{ matrix.target }} -- -D warnings
+
+      - name: cargo test
+        run: cargo test --workspace --target ${{ matrix.target }}
+
+  # -------------------------------------------------------------------------
+  # Frontend: lint, typecheck, build.
+  # -------------------------------------------------------------------------
+  frontend:
+    name: frontend (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, ubuntu-latest]
+
+    defaults:
+      run:
+        working-directory: frontend
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: npm ci
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Typecheck
+        run: npx tsc --noEmit
+
+      - name: Build
+        run: npm run build
+
+      - name: Upload frontend build
+        if: matrix.os == 'ubuntu-latest'
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-dist
+          path: frontend/dist
+          retention-days: 7
+
+  # -------------------------------------------------------------------------
+  # Config sanity: the JSON that gates Tauri security must always parse, and
+  # every bundle icon it declares must exist on disk.
+  # -------------------------------------------------------------------------
+  config:
+    name: config sanity
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Validate tauri.conf.json and capabilities
+        run: |
+          python3 -c "import json;json.load(open('src-tauri/tauri.conf.json'))"
+          for f in src-tauri/capabilities/*.json; do
+            python3 -c "import json,sys;json.load(open(sys.argv[1]))" "$f"
+          done
+
+      - name: Verify declared bundle icons exist
+        run: |
+          python3 - <<'PY'
+          import json, os, sys
+          cfg = json.load(open('src-tauri/tauri.conf.json'))
+          missing = [i for i in cfg['bundle']['icon']
+                     if not os.path.exists(os.path.join('src-tauri', i))]
+          if missing:
+              sys.exit('missing icons: ' + ', '.join(missing))
+          print('all declared icons present')
+          PY

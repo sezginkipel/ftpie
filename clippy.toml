@@ -1,0 +1,15 @@
+# Clippy configuration for ftpie.
+#
+# Keep the MSRV pinned so clippy does not suggest APIs newer than what we
+# support, and cap complexity metrics at values the transfer/protocol layers
+# can realistically meet.
+msrv = "1.77"
+
+# Async protocol handlers legitimately carry a lot of state.
+too-many-arguments-threshold = 9
+type-complexity-threshold = 350
+
+# Flag any of these appearing in the codebase — the locking policy in
+# CONTRACT.md forbids `.lock().unwrap()`; these names catch accidental
+# placeholder identifiers slipping into review.
+disallowed-names = ["foo", "bar", "baz", "tmp2", "todo"]
