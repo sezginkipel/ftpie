@@ -35,7 +35,7 @@ jobs:
             target: x86_64-unknown-linux-gnu
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Read the pinned toolchain
         id: pin
@@ -75,7 +75,7 @@ jobs:
             pkg-config
 
       - name: Cache cargo registry and git db
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: |
             ~/.cargo/registry/index
@@ -86,7 +86,7 @@ jobs:
             cargo-registry-${{ matrix.name }}-
 
       - name: Cache cargo target dir
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: target
           key: cargo-target-${{ matrix.name }}-${{ hashFiles('**/Cargo.lock') }}-${{ hashFiles('src-tauri/**/*.rs') }}
@@ -128,10 +128,10 @@ jobs:
         working-directory: frontend
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Setup Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v7
         with:
           node-version: 20
           cache: npm
@@ -151,7 +151,7 @@ jobs:
 
       - name: Upload frontend build
         if: matrix.os == 'ubuntu-latest'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: frontend-dist
           path: frontend/dist
@@ -165,7 +165,7 @@ jobs:
     name: config sanity
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Validate tauri.conf.json and capabilities
         run: |
