@@ -38,7 +38,7 @@ serde_json = "1"
 # Encryption (credential vault, bookmark sync)
 aes-gcm = "0.10"
 argon2 = "0.5"
-base64 = "0.22"
+base64 = "0.23"
 # Wipe derived key material on drop rather than leaving it in freed memory
 zeroize = { version = "1", features = ["derive"] }
 
