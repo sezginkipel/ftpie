@@ -119,7 +119,7 @@ sudo apt-get install -y \
 ## Development setup
 
 ```bash
-git clone <repo-url> ftpie
+git clone https://github.com/sezginkipel/ftpie
 cd ftpie
 
 # Frontend dependencies

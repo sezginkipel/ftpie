@@ -11,8 +11,7 @@
 export const VERSION = '0.1.0';
 export const LICENSE = 'Apache-2.0';
 
-/** Filled in once the repository is public. Links stay hidden while it is empty. */
-export const REPO = '';
+export const REPO = 'https://github.com/sezginkipel/ftpie';
 
 /**
  * No installers are published. Release signing is not set up, and handing out

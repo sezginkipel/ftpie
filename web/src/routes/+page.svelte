@@ -13,7 +13,11 @@
     VERSION
   } from '$lib/data';
 
-  const build = ['git clone <repo> && cd ftpie', 'npm ci --prefix frontend', 'npx --prefix frontend tauri build'];
+  const build = [
+    'git clone https://github.com/sezginkipel/ftpie && cd ftpie',
+    'npm ci --prefix frontend',
+    'npx --prefix frontend tauri build'
+  ];
 
   let copied = $state(false);
   async function copyBuild() {
