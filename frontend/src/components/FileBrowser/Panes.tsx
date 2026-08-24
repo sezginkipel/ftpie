@@ -11,13 +11,7 @@ import { useCallback, useEffect, useRef, useState, type KeyboardEvent } from 're
 import { baseName, parentPath } from '../../lib/format';
 import { useT } from '../../lib/i18n';
 import { call, isAppError } from '../../lib/ipc';
-import type {
-  LocalFile,
-  LocalListing,
-  PaneSide,
-  RemoteFile,
-  SortState,
-} from '../../lib/types';
+import type { LocalFile, LocalListing, PaneSide, RemoteFile, SortState } from '../../lib/types';
 import { useEditorStore, isReopenConflict } from '../../store/editorStore';
 import { useSessionStore } from '../../store/sessionStore';
 import { useSettingsStore } from '../../store/settingsStore';
@@ -42,9 +36,7 @@ export function Panes() {
   const { toast, showError } = useToast();
 
   const activeId = useSessionStore((state) => state.activeId);
-  const ui = useSessionStore((state) =>
-    state.activeId ? state.ui[state.activeId] : undefined,
-  );
+  const ui = useSessionStore((state) => (state.activeId ? state.ui[state.activeId] : undefined));
   const setRemotePath = useSessionStore((state) => state.setRemotePath);
   const setLocalPath = useSessionStore((state) => state.setLocalPath);
   const setSelection = useSessionStore((state) => state.setSelection);
@@ -407,9 +399,12 @@ export function Panes() {
           });
           return;
         }
-        if (isAppError(error) && useUiStore.getState().openDialogForError(error, () => {
-          void openTab(activeId, entry.path).catch(() => {});
-        })) {
+        if (
+          isAppError(error) &&
+          useUiStore.getState().openDialogForError(error, () => {
+            void openTab(activeId, entry.path).catch(() => {});
+          })
+        ) {
           return;
         }
         showError(error);
@@ -426,8 +421,11 @@ export function Panes() {
         `min-h-0` is load-bearing, not decoration: without it a flex child will
         not shrink below its content height, so a long listing pushed this column
         past the container and drew over the transfer queue below.
+
+        The width is the split ratio minus half the gutter, so the two panels and
+        the 8px gutter between them always add up to the container exactly.
       */}
-      <div style={{ width: leftWidth }} className="flex min-h-0 min-w-0 flex-col">
+      <div style={{ width: `calc(${leftWidth} - 4px)` }} className="flex min-h-0 min-w-0 flex-col">
         <FilePane
           side="local"
           sessionId={activeId}
@@ -448,6 +446,12 @@ export function Panes() {
         />
       </div>
 
+      {/*
+        A 1px hairline is a 1px target. The splitter is an 8px hit area — the gap
+        between the two panels — containing a 2px grip that only becomes visible
+        on hover, focus or while dragging. `group` drives that from the hit area
+        so the grip never has to be aimed at directly.
+      */}
       <div
         role="separator"
         aria-orientation="vertical"
@@ -456,12 +460,18 @@ export function Panes() {
         aria-valuemin={20}
         aria-valuemax={80}
         tabIndex={0}
+        data-focus-none
         onMouseDown={() => {
           dragging.current = true;
         }}
         onKeyDown={onSplitKeyDown}
-        className="w-1 shrink-0 cursor-col-resize bg-border transition-quick hover:bg-accent"
-      />
+        className="group flex w-2 shrink-0 cursor-col-resize items-center justify-center focus-visible:outline-none"
+      >
+        <span
+          aria-hidden
+          className="h-10 w-0.5 rounded-full bg-transparent transition-base group-hover:bg-border-strong group-focus-visible:bg-accent group-active:bg-accent"
+        />
+      </div>
 
       <div className="flex min-h-0 min-w-0 flex-1 flex-col">
         <FilePane

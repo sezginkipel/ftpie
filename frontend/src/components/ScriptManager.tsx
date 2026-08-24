@@ -45,13 +45,13 @@ import { useSettingsStore } from '../store/settingsStore';
 import { useMonacoTheme } from './EditorPane';
 import {
   AlertDialog,
-  Badge,
   Button,
   Dialog,
   EmptyState,
   ErrorState,
   Field,
   Icon,
+  IconButton,
   Input,
   Select,
   Spinner,
@@ -120,9 +120,7 @@ export function ScriptManager({ open, onOpenChange, initialScriptId }: ScriptMan
   const [listError, setListError] = useState<unknown>(null);
   const [draft, setDraft] = useState<Draft>(EMPTY_DRAFT);
   const [saving, setSaving] = useState(false);
-  const [validation, setValidation] = useState<{ ok: boolean; detail: string | null } | null>(
-    null,
-  );
+  const [validation, setValidation] = useState<{ ok: boolean; detail: string | null } | null>(null);
   const [validating, setValidating] = useState(false);
   const [runId, setRunId] = useState<string | null>(null);
   const [run, setRun] = useState<ScriptRun | null>(null);
@@ -285,16 +283,27 @@ export function ScriptManager({ open, onOpenChange, initialScriptId }: ScriptMan
             className="max-w-[220px]"
           />
           <span className="flex-1" />
-          <Button icon={<Icon name="check" />} loading={validating} onClick={() => void validate()}>
+          <Button
+            className="press"
+            icon={<Icon name="check" />}
+            loading={validating}
+            onClick={() => void validate()}
+          >
             {t('script.validate')}
           </Button>
           {runId ? (
-            <Button variant="danger" icon={<Icon name="stop" />} onClick={() => void stop()}>
+            <Button
+              variant="danger"
+              className="press"
+              icon={<Icon name="stop" />}
+              onClick={() => void stop()}
+            >
               {t('script.cancel')}
             </Button>
           ) : (
             <Button
               variant="primary"
+              className="press"
               icon={<Icon name="play" />}
               disabled={draft.source.trim() === ''}
               onClick={() => void start()}
@@ -303,6 +312,7 @@ export function ScriptManager({ open, onOpenChange, initialScriptId }: ScriptMan
             </Button>
           )}
           <Button
+            className="press"
             icon={<Icon name="save" />}
             loading={saving}
             disabled={nameError !== null}
@@ -313,15 +323,17 @@ export function ScriptManager({ open, onOpenChange, initialScriptId }: ScriptMan
         </div>
       }
     >
-      <div className="flex min-h-0 flex-1 gap-2">
+      <div className="flex min-h-0 flex-1 gap-2.5">
         {/* ── Saved scripts ── */}
-        <div className="flex w-44 flex-none flex-col rounded border border-border">
-          <div className="flex h-7 flex-none items-center gap-1 border-b border-border px-1.5">
-            <span className="flex-1 text-xs uppercase tracking-wide text-text-3">
+        <div className="flex w-48 flex-none flex-col overflow-hidden rounded-lg border border-border bg-surface shadow-e1">
+          <div className="flex h-8 flex-none items-center gap-1 border-b border-border bg-surface-2 px-2">
+            <span className="flex-1 text-2xs uppercase tracking-wider text-text-3">
               {t('script.list')}
             </span>
             <Button
               size="sm"
+              variant="ghost"
+              className="press"
               icon={<Icon name="plus" />}
               onClick={() => {
                 setDraft(EMPTY_DRAFT);
@@ -349,7 +361,10 @@ export function ScriptManager({ open, onOpenChange, initialScriptId }: ScriptMan
             ) : (
               <ul>
                 {scripts.map((script) => (
-                  <li key={script.id} className="flex items-center gap-1 px-1">
+                  <li
+                    key={script.id}
+                    className="group flex items-center gap-1 border-b border-border last:border-b-0"
+                  >
                     <button
                       type="button"
                       onClick={() => {
@@ -359,20 +374,22 @@ export function ScriptManager({ open, onOpenChange, initialScriptId }: ScriptMan
                         setRunError(null);
                       }}
                       aria-current={script.id === draft.id}
-                      className="min-w-0 flex-1 truncate rounded px-1 py-1 text-left text-base aria-[current=true]:bg-accent-weak"
+                      // The selected row gets the accent fill plus a 2px inset
+                      // rail, which is the app-wide selection treatment.
+                      className="min-w-0 flex-1 truncate px-2 py-1.5 text-left text-base transition-quick hover:bg-surface-2 aria-[current=true]:bg-accent-weak aria-[current=true]:shadow-[inset_2px_0_0_0_var(--accent)]"
                     >
                       <span className="block truncate text-text">{script.name}</span>
-                      <span className="block truncate text-xs text-text-3">
+                      <span className="block truncate text-xs tnum text-text-3">
                         {script.lastRun
                           ? `${t('script.lastRun')}: ${formatDate(script.lastRun, locale, dateFormat)}`
                           : t('script.neverRun')}
                       </span>
                     </button>
-                    <Button
-                      size="sm"
-                      variant="ghost"
+                    <IconButton
+                      className="press mr-1 opacity-0 transition-quick focus-visible:opacity-100 group-hover:opacity-100"
                       icon={<Icon name="trash" />}
-                      aria-label={t('common.delete')}
+                      label={t('common.delete')}
+                      variant="danger"
                       onClick={() => setDeleting(script)}
                     />
                   </li>
@@ -412,44 +429,78 @@ export function ScriptManager({ open, onOpenChange, initialScriptId }: ScriptMan
             </Field>
           </div>
 
-          <div className="min-h-[180px] flex-1 overflow-hidden rounded border border-border">
-            <Editor
-              language={RHAI_LANGUAGE_ID}
-              value={draft.source}
-              theme={monacoTheme}
-              onChange={(value) =>
-                setDraft((current) => ({ ...current, source: value ?? '' }))
-              }
-              options={{
-                fontSize,
-                tabSize,
-                wordWrap: wordWrap ? 'on' : 'off',
-                fontFamily: 'var(--font-mono)',
-                minimap: { enabled: false },
-                scrollBeyondLastLine: false,
-                automaticLayout: true,
-                ariaLabel: t('script.editorLabel'),
-              }}
-            />
+          {/*
+           * The source panel is framed like an editor, not like a form control:
+           * its own chrome strip naming the language, with the editor flush to
+           * the frame underneath.
+           */}
+          <div className="flex min-h-[180px] flex-1 flex-col overflow-hidden rounded-lg border border-border bg-surface shadow-e1">
+            <div className="flex h-7 flex-none items-center gap-2 border-b border-border bg-surface-2 px-2">
+              <Icon name="terminal" className="flex-none text-text-3" />
+              <span className="text-2xs uppercase tracking-wider text-text-3">
+                {t('script.sourceSection')}
+              </span>
+              <span className="flex-1" />
+              <span className="font-mono text-2xs uppercase tracking-wider text-text-3">
+                {t('script.language')}
+              </span>
+            </div>
+            <div className="min-h-0 flex-1">
+              <Editor
+                language={RHAI_LANGUAGE_ID}
+                value={draft.source}
+                theme={monacoTheme}
+                onChange={(value) => setDraft((current) => ({ ...current, source: value ?? '' }))}
+                options={{
+                  fontSize,
+                  tabSize,
+                  wordWrap: wordWrap ? 'on' : 'off',
+                  fontFamily: 'var(--font-mono)',
+                  minimap: { enabled: false },
+                  scrollBeyondLastLine: false,
+                  automaticLayout: true,
+                  ariaLabel: t('script.editorLabel'),
+                }}
+              />
+            </div>
           </div>
 
+          {/*
+           * A parse error is expected output, not an incident: it stays inline,
+           * monospaced and pre-wrapped, so the column the parser points at still
+           * lines up with the source above it.
+           */}
           {validation ? (
-            <p
-              role="status"
-              className={
-                validation.ok
-                  ? 'flex-none text-sm text-ok'
-                  : 'flex-none select-text whitespace-pre-wrap font-mono text-xs text-danger'
-              }
-            >
-              {validation.ok ? t('script.valid') : `${t('script.invalid')} ${validation.detail ?? ''}`}
-            </p>
+            validation.ok ? (
+              <p
+                role="status"
+                className="flex flex-none items-center gap-2 rounded border border-border bg-ok-weak px-2.5 py-1.5 text-sm text-text"
+              >
+                <Icon name="check" className="flex-none text-ok" />
+                {t('script.valid')}
+              </p>
+            ) : (
+              <div
+                role="status"
+                className="flex flex-none flex-col gap-1 rounded border border-danger bg-danger-weak px-2.5 py-2"
+              >
+                <p className="flex items-center gap-2 text-sm font-semibold text-text">
+                  <Icon name="alert-circle" className="flex-none text-danger" />
+                  {t('script.invalid')}
+                </p>
+                {validation.detail ? (
+                  <pre className="max-h-24 select-text overflow-auto whitespace-pre-wrap break-words font-mono text-xs leading-relaxed text-text-2">
+                    {validation.detail}
+                  </pre>
+                ) : null}
+              </div>
+            )
           ) : null}
 
           {/* ── Output ── */}
-          <div className="flex h-40 flex-none flex-col rounded border border-border">
-            <div className="flex h-6 flex-none items-center gap-2 border-b border-border px-1.5">
-              <span className="text-xs uppercase tracking-wide text-text-3">
+          <div className="flex h-40 flex-none flex-col overflow-hidden rounded-lg border border-border bg-surface shadow-e1">
+            <div className="flex h-7 flex-none items-center gap-2 border-b border-border bg-surface-2 px-2">
+              <span className="text-2xs uppercase tracking-wider text-text-3">
                 {t('script.output')}
               </span>
               {runId ? (
@@ -458,14 +509,14 @@ export function ScriptManager({ open, onOpenChange, initialScriptId }: ScriptMan
                 </span>
               ) : null}
               {run ? (
-                <Badge tone="ok" mono>
+                <span className="rounded-sm bg-ok-weak px-1.5 py-px font-mono text-2xs tnum text-ok">
                   {formatEta(run.durationMs / 1000)}
-                </Badge>
+                </span>
               ) : null}
               <span className="flex-1" />
               <span className="truncate text-xs text-text-3">{t('script.logsNote')}</span>
             </div>
-            <div className="min-h-0 flex-1 select-text overflow-auto p-1.5 font-mono text-xs">
+            <div className="min-h-0 flex-1 select-text overflow-auto bg-surface p-2 font-mono text-xs leading-relaxed">
               {runError ? (
                 <ErrorState error={runError} title={t('script.runFailed')} compact />
               ) : run ? (
@@ -475,17 +526,17 @@ export function ScriptManager({ open, onOpenChange, initialScriptId }: ScriptMan
                       key={`${entry.timestamp}-${index}`}
                       className={
                         entry.level === 'error'
-                          ? 'text-danger'
+                          ? 'whitespace-pre-wrap break-words rounded-sm bg-danger-weak px-1 text-danger'
                           : entry.level === 'warn'
-                            ? 'text-warn'
-                            : 'text-text-2'
+                            ? 'whitespace-pre-wrap break-words rounded-sm bg-warn-weak px-1 text-warn'
+                            : 'whitespace-pre-wrap break-words px-1 text-text-2'
                       }
                     >
                       {entry.message}
                     </p>
                   ))}
                   {run.result ? (
-                    <p className="mt-1 text-text">
+                    <p className="mt-1.5 select-text break-words border-t border-border px-1 pt-1.5 text-text">
                       {t('script.result')}: {run.result}
                     </p>
                   ) : null}
@@ -498,21 +549,26 @@ export function ScriptManager({ open, onOpenChange, initialScriptId }: ScriptMan
         </div>
 
         {/* ── Host-function reference ── */}
-        <aside className="hidden w-52 flex-none flex-col rounded border border-border lg:flex">
-          <h3 className="flex-none border-b border-border px-1.5 py-1 text-xs uppercase tracking-wide text-text-3">
+        <aside className="hidden w-56 flex-none flex-col overflow-hidden rounded-lg border border-border bg-surface shadow-e1 lg:flex">
+          <h3 className="flex h-8 flex-none items-center border-b border-border bg-surface-2 px-2 text-2xs uppercase tracking-wider text-text-3">
             {t('script.reference')}
           </h3>
-          <div className="min-h-0 flex-1 overflow-auto p-1.5">
-            <ul className="flex flex-col gap-0.5">
+          <div className="min-h-0 flex-1 overflow-auto p-2">
+            <ul className="flex flex-col">
               {SCRIPT_HOST_FUNCTIONS.map((fn) => (
-                <li key={fn} className="select-text font-mono text-xs text-text-2">
+                <li
+                  key={fn}
+                  className="select-text truncate rounded-sm px-1 py-0.5 font-mono text-xs text-text-2 transition-quick hover:bg-surface-2 hover:text-text"
+                >
                   {fn}
                 </li>
               ))}
             </ul>
-            <p className="mt-2 text-xs text-text-3">{t('script.referenceHint')}</p>
+            <p className="mt-2.5 text-xs text-text-3">{t('script.referenceHint')}</p>
             {sessionChoice === '' ? (
-              <p className="mt-1.5 text-xs text-warn">{t('script.needsSession')}</p>
+              <p className="mt-2 rounded border border-border bg-warn-weak px-2 py-1.5 text-xs text-text">
+                {t('script.needsSession')}
+              </p>
             ) : null}
           </div>
         </aside>

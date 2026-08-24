@@ -6,12 +6,7 @@ import { I18nProvider, translate } from '../lib/i18n';
 import type { AiAction, AiProviderInfo, AiResponse } from '../lib/types';
 import { useSessionStore } from '../store/sessionStore';
 import { invokeCalls, mockInvoke } from '../test/setup';
-import {
-  AiAssistant,
-  SUPPORTED_ACTION_TYPES,
-  actionKindLabel,
-  actionPaths,
-} from './AiAssistant';
+import { AiAssistant, SUPPORTED_ACTION_TYPES, actionKindLabel, actionPaths } from './AiAssistant';
 import { ToastProvider, TooltipProvider } from './ui';
 
 const t = (key: Parameters<typeof translate>[1]) => translate('en', key);
@@ -181,9 +176,7 @@ describe('<AiAssistant />', () => {
     await userEvent.type(screen.getByLabelText('Ask something…'), 'hi');
     await userEvent.click(screen.getByRole('button', { name: 'Send' }));
 
-    expect(
-      await screen.findByText(/<img src=x onerror="alert\(1\)">/),
-    ).toBeInTheDocument();
+    expect(await screen.findByText(/<img src=x onerror="alert\(1\)">/)).toBeInTheDocument();
     expect(view.container.querySelector('img')).toBeNull();
   });
 
@@ -217,9 +210,7 @@ describe('<AiAssistant />', () => {
     await screen.findByText('Delete /srv/old.log');
 
     const buttonLabels = view.container.textContent ?? '';
-    expect(buttonLabels).toContain(
-      'It cannot run scripts and it cannot upload files.',
-    );
+    expect(buttonLabels).toContain('It cannot run scripts and it cannot upload files.');
     expect(screen.queryByRole('button', { name: /run|execute|upload/i })).toBeNull();
   });
 
@@ -243,8 +234,6 @@ describe('<AiAssistant />', () => {
 
     await userEvent.click(screen.getAllByRole('button', { name: 'Do this' })[0]);
     expect(await screen.findByText('Deleted /srv/old.log')).toBeInTheDocument();
-    expect(
-      invokeCalls.filter((entry) => entry.cmd === 'ai_apply_action'),
-    ).toHaveLength(1);
+    expect(invokeCalls.filter((entry) => entry.cmd === 'ai_apply_action')).toHaveLength(1);
   });
 });

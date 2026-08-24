@@ -9,13 +9,7 @@
 import { create } from 'zustand';
 
 import { call } from '../lib/ipc';
-import type {
-  ConnectArgs,
-  ConnectResult,
-  PaneSide,
-  SessionMeta,
-  SortState,
-} from '../lib/types';
+import type { ConnectArgs, ConnectResult, PaneSide, SessionMeta, SortState } from '../lib/types';
 import { getSettings } from './settingsStore';
 
 /** Everything the two panes need to remember about one session. */
@@ -171,17 +165,14 @@ export const useSessionStore = create<SessionState>((set, get) => ({
       const ui: Record<string, SessionUiState> = {};
       for (const meta of live) {
         sessions[meta.id] = meta;
-        ui[meta.id] =
-          state.ui[meta.id] ?? initialUiState(meta.protocol !== 'ftp');
+        ui[meta.id] = state.ui[meta.id] ?? initialUiState(meta.protocol !== 'ftp');
       }
       const order = [
         ...state.order.filter((id) => sessions[id]),
         ...live.map((m) => m.id).filter((id) => !state.order.includes(id)),
       ];
       const activeId =
-        state.activeId && sessions[state.activeId]
-          ? state.activeId
-          : (order[0] ?? null);
+        state.activeId && sessions[state.activeId] ? state.activeId : (order[0] ?? null);
       return { sessions, ui, order, activeId };
     });
   },
@@ -232,17 +223,11 @@ export const useSessionStore = create<SessionState>((set, get) => ({
 }));
 
 type SetState = (
-  partial:
-    | Partial<SessionState>
-    | ((state: SessionState) => Partial<SessionState>),
+  partial: Partial<SessionState> | ((state: SessionState) => Partial<SessionState>),
 ) => void;
 
 /** Insert a freshly opened session and return its id. */
-function adoptSession(
-  set: SetState,
-  get: () => SessionState,
-  result: ConnectResult,
-): string {
+function adoptSession(set: SetState, get: () => SessionState, result: ConnectResult): string {
   const meta = result.session;
   const previous = get().ui[meta.id];
 
@@ -252,9 +237,7 @@ function adoptSession(
     ui: {
       ...state.ui,
       // Reconnecting the same id keeps where the user was.
-      [meta.id]: previous
-        ? { ...previous, secure: result.secure }
-        : initialUiState(result.secure),
+      [meta.id]: previous ? { ...previous, secure: result.secure } : initialUiState(result.secure),
     },
   }));
 

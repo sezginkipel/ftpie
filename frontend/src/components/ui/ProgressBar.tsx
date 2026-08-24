@@ -28,6 +28,11 @@ export interface ProgressBarProps {
  * Determinate or indeterminate progress with correct ARIA. `aria-valuenow` is
  * set only in the determinate case, so assistive technology reports "busy"
  * rather than a made-up number when the size is unknown.
+ *
+ * A determinate bar that is neither empty nor finished also carries a slow sheen
+ * across the filled part. A row of static bars gives no clue whether a transfer
+ * is moving or wedged; the sheen answers that at a glance, and it stops on its
+ * own at 0% and 100% because there is nothing live to report then.
  */
 export function ProgressBar({
   value,
@@ -39,6 +44,7 @@ export function ProgressBar({
   const indeterminate = value === null || !Number.isFinite(value);
   const clamped = indeterminate ? 0 : Math.max(0, Math.min(1, value));
   const percent = Math.round(clamped * 100);
+  const active = !indeterminate && percent > 0 && percent < 100;
 
   return (
     <div
@@ -50,22 +56,36 @@ export function ProgressBar({
       aria-valuetext={indeterminate ? undefined : `${percent}%`}
       aria-busy={indeterminate || undefined}
       className={cn(
+        // The track is the inset well; the fill is the object inside it.
         'relative w-full overflow-hidden rounded-full bg-surface-2',
-        height === 2 && 'h-0.5',
-        height === 4 && 'h-1',
-        height === 6 && 'h-1.5',
+        'shadow-[inset_0_1px_1px_rgba(0,0,0,0.08)]',
+        height === 2 && 'h-[3px]',
+        height === 4 && 'h-1.5',
+        height === 6 && 'h-2',
         className,
       )}
     >
       {indeterminate ? (
         <div
-          className={cn('absolute inset-y-0 w-1/3 animate-indeterminate', TONES[tone])}
+          className={cn('absolute inset-y-0 w-1/3 animate-indeterminate rounded-full', TONES[tone])}
         />
       ) : (
         <div
-          className={cn('h-full transition-quick', TONES[tone])}
+          className={cn(
+            'relative h-full overflow-hidden rounded-full',
+            'transition-[width] duration-base ease-out',
+            TONES[tone],
+          )}
+          // Width, not transform: a transform would smear the sheen overlay.
           style={{ width: `${percent}%` }}
-        />
+        >
+          {active ? (
+            <span
+              aria-hidden
+              className="absolute inset-0 animate-sheen bg-gradient-to-r from-transparent via-white/25 to-transparent"
+            />
+          ) : null}
+        </div>
       )}
     </div>
   );

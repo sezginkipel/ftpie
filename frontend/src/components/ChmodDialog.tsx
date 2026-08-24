@@ -115,11 +115,12 @@ export function ChmodDialog() {
       footer={
         <>
           <InlineError error={error} className="mr-auto" />
-          <Button variant="secondary" onClick={closeDialog} disabled={busy}>
+          <Button variant="secondary" className="press" onClick={closeDialog} disabled={busy}>
             {t('common.cancel')}
           </Button>
           <Button
             variant="primary"
+            className="press"
             loading={busy}
             disabled={!octalValid}
             onClick={() => void apply()}
@@ -129,30 +130,38 @@ export function ChmodDialog() {
         </>
       }
     >
-      <div className="flex flex-col gap-3">
-        <table className="w-full text-sm">
+      <div className="flex flex-col gap-4">
+        {/*
+         * The permission grid is the primary control here, so it gets a panel of
+         * its own with proper chrome on the header row rather than sitting as a
+         * bare table in the flow.
+         */}
+        <table className="w-full overflow-hidden rounded-lg border border-border text-sm">
           <thead>
-            <tr className="text-left text-xs uppercase tracking-wide text-text-3">
-              <th scope="col" className="py-1" />
-              <th scope="col" className="py-1">
+            <tr className="bg-surface-2 text-left text-2xs uppercase tracking-wider text-text-3">
+              <th scope="col" className="w-24 px-3 py-1.5" />
+              <th scope="col" className="px-3 py-1.5">
                 {t('chmod.read')}
               </th>
-              <th scope="col" className="py-1">
+              <th scope="col" className="px-3 py-1.5">
                 {t('chmod.write')}
               </th>
-              <th scope="col" className="py-1">
+              <th scope="col" className="px-3 py-1.5">
                 {t('chmod.execute')}
               </th>
             </tr>
           </thead>
           <tbody>
             {(['owner', 'group', 'other'] as Who[]).map((who) => (
-              <tr key={who}>
-                <th scope="row" className="py-0.5 pr-2 text-left font-normal text-text-2">
+              <tr key={who} className="border-t border-border transition-quick hover:bg-surface-2">
+                <th
+                  scope="row"
+                  className="px-3 py-1.5 text-left text-2xs font-normal uppercase tracking-wider text-text-2"
+                >
                   {t(`chmod.${who}`)}
                 </th>
                 {(['read', 'write', 'execute'] as What[]).map((what) => (
-                  <td key={what} className="py-0.5">
+                  <td key={what} className="px-3 py-1.5">
                     <Checkbox
                       checked={hasBit(mode, who, what)}
                       onCheckedChange={(checked) => toggle(who, what, checked)}
@@ -168,24 +177,33 @@ export function ChmodDialog() {
           </tbody>
         </table>
 
-        <Field
-          label={t('chmod.octal')}
-          error={octalValid ? null : t('chmod.octalInvalid')}
-          hint={formatMode(mode)}
-        >
-          {({ id, describedBy, invalid }) => (
-            <Input
-              id={id}
-              aria-describedby={describedBy}
-              invalid={invalid}
-              mono
-              inputMode="numeric"
-              value={octal}
-              onChange={(event) => setFromOctal(event.target.value)}
-              className="w-24"
-            />
-          )}
-        </Field>
+        {/*
+         * Octal and symbolic side by side: typing one updates the other, and
+         * the symbolic form stays visible so a mistyped digit is obvious.
+         */}
+        <div className="flex items-end gap-3">
+          <Field
+            label={t('chmod.octal')}
+            error={octalValid ? null : t('chmod.octalInvalid')}
+            hint={t('chmod.octalHint')}
+          >
+            {({ id, describedBy, invalid }) => (
+              <Input
+                id={id}
+                aria-describedby={describedBy}
+                invalid={invalid}
+                mono
+                inputMode="numeric"
+                value={octal}
+                onChange={(event) => setFromOctal(event.target.value)}
+                className="w-24"
+              />
+            )}
+          </Field>
+          <span className="mb-6 select-all rounded border border-border bg-surface-2 px-2.5 py-1 font-mono text-base tnum text-text">
+            {formatMode(mode)}
+          </span>
+        </div>
       </div>
     </Dialog>
   );

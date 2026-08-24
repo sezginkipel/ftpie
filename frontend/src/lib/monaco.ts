@@ -198,10 +198,7 @@ function registerRhai(m: typeof monaco): void {
         ],
         { include: '@whitespace' },
         [/[{}()[\]]/, '@brackets'],
-        [
-          /@symbols/,
-          { cases: { '@operators': 'operator', '@default': '' } },
-        ],
+        [/@symbols/, { cases: { '@operators': 'operator', '@default': '' } }],
         // Numbers: hex, binary, octal, float with exponent, decimal.
         [/0[xX][0-9A-Fa-f_]+/, 'number.hex'],
         [/0[bB][01_]+/, 'number.binary'],
@@ -248,7 +245,11 @@ function registerRhai(m: typeof monaco): void {
 
 /** Guess a Monaco language id from a file name, for the remote editor. */
 export function languageForPath(path: string): string {
-  const name = path.replace(/[\\/]+$/, '').split(/[\\/]/).pop() ?? path;
+  const name =
+    path
+      .replace(/[\\/]+$/, '')
+      .split(/[\\/]/)
+      .pop() ?? path;
   const lower = name.toLowerCase();
 
   const byName: Record<string, string> = {

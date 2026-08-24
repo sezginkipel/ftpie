@@ -161,9 +161,7 @@ export const useTransferStore = create<TransferState>((set, get) => ({
     }
 
     totals.progress =
-      totals.bytesTotal > 0
-        ? Math.min(1, totals.bytesDone / totals.bytesTotal)
-        : null;
+      totals.bytesTotal > 0 ? Math.min(1, totals.bytesDone / totals.bytesTotal) : null;
     return totals;
   },
 

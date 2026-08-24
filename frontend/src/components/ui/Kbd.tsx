@@ -29,18 +29,27 @@ const SYMBOLS: Record<string, string> = {
   Right: '→',
 };
 
-/** Renders a keyboard shortcut as a row of key caps. */
+/**
+ * Renders a keyboard shortcut as a row of key caps.
+ *
+ * The cap is built from three things a real key has: a border a shade stronger
+ * than the surface, a soft top-inset highlight, and a 1px bottom shadow that
+ * reads as the key standing off the page. Flat bordered boxes read as code
+ * spans, not keys.
+ */
 export function Kbd({ keys, className }: KbdProps) {
   const parts = keys.split('+').map((part) => part.trim());
 
   return (
-    <span className={cn('inline-flex items-center gap-0.5', className)}>
+    <span className={cn('inline-flex flex-none items-center gap-1', className)}>
       {parts.map((part, index) => (
         <kbd
           key={`${part}-${index}`}
           className={cn(
-            'inline-flex h-4 min-w-4 items-center justify-center rounded border',
-            'border-border-strong bg-surface-2 px-1 font-mono text-2xs text-text-2',
+            'inline-flex h-[18px] min-w-[18px] items-center justify-center rounded-sm',
+            'border border-border-strong bg-surface-2 px-1.5',
+            'font-mono text-2xs font-medium leading-none text-text-2',
+            'shadow-[inset_0_1px_0_0_var(--highlight),0_1px_0_0_var(--border-strong)]',
           )}
         >
           {SYMBOLS[part] ?? part}

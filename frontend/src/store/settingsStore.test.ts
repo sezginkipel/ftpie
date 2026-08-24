@@ -81,9 +81,7 @@ describe('syncToBackend', () => {
     mockInvoke('set_max_concurrent_transfers', () => null);
 
     await store().syncToBackend();
-    expect(invokeCalls).toEqual([
-      { cmd: 'set_max_concurrent_transfers', args: { count: 7 } },
-    ]);
+    expect(invokeCalls).toEqual([{ cmd: 'set_max_concurrent_transfers', args: { count: 7 } }]);
   });
 
   it('propagates a rejection so the caller can toast it', async () => {
@@ -99,9 +97,7 @@ describe('reset', () => {
 
     expect(store().locale).toBe('en');
     expect(store().showHiddenFiles).toBe(false);
-    expect(store().maxConcurrentTransfers).toBe(
-      DEFAULT_SETTINGS.maxConcurrentTransfers,
-    );
+    expect(store().maxConcurrentTransfers).toBe(DEFAULT_SETTINGS.maxConcurrentTransfers);
   });
 });
 

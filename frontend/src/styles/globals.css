@@ -5,84 +5,159 @@
 /*
  * Design tokens.
  *
- * The LIGHT palette is defined on bare `:root`, so no colour's only definition
- * sits behind a media query or an attribute selector. The dark palette is then
- * declared twice: once for "system dark, unless the user explicitly chose
- * light", and once for an explicit `data-theme="dark"`, so an explicit choice
- * wins in both directions.
+ * Theme handling has three states, not two: an explicit choice stamps
+ * `data-theme` on the root, and the default "system" setting stamps nothing, so
+ * only `prefers-color-scheme` separates light from dark. The LIGHT palette is
+ * therefore defined on bare `:root` — no colour's only definition sits behind a
+ * media query or an attribute selector — and the dark palette is declared twice:
+ * once for "system dark unless the user explicitly chose light", and once for an
+ * explicit `data-theme="dark"` so the toggle wins in both directions.
+ *
+ * Surfaces are layered rather than flat. Depth comes from three things used
+ * together: a background step, a hairline border, and on dark a 1px inset
+ * highlight along the top edge that reads as light catching an edge. Semantic
+ * colour (ok / warn / danger) is reserved for real state, never decoration.
  */
 :root {
-  --bg: #f6f7f9;
+  /* Ground -> panel -> inset -> raised. Each step is deliberate. */
+  --bg: #f4f5f7;
   --surface: #ffffff;
-  --surface-2: #eef0f4;
-  --border: #dce0e7;
-  --border-strong: #c3c9d4;
-  --text: #131720;
-  --text-2: #4a5361;
-  --text-3: #6b7480;
-  --accent: #2563eb;
-  --accent-weak: #e8effe;
-  --ok: #197f48;
-  --warn: #96660d;
-  --danger: #c2382f;
-  --info: #1f6fa8;
+  --surface-2: #eef0f3;
+  --surface-3: #ffffff;
 
-  /* Contrasting foreground for a filled accent/danger surface. */
+  --border: #e3e6ea;
+  --border-strong: #c8cdd5;
+
+  --text: #0f1319;
+  --text-2: #4d5560;
+  --text-3: #79818d;
+
+  --accent: #2563eb;
+  --accent-hover: #1d4ed8;
+  --accent-weak: #e8eefd;
+  --accent-line: #b9ccfa;
   --on-accent: #ffffff;
 
-  --font-ui: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto,
-    'Helvetica Neue', Arial, sans-serif;
-  --font-mono: ui-monospace, 'Cascadia Code', 'Cascadia Mono', Consolas,
-    'SFMono-Regular', 'Liberation Mono', Menlo, monospace;
+  --ok: #0f7a46;
+  --ok-weak: #e4f2ea;
+  --warn: #8a5d0a;
+  --warn-weak: #fbf0d9;
+  --danger: #c0342a;
+  --danger-weak: #fbe9e7;
+  --info: #1a6ba8;
+  --info-weak: #e5f0f8;
 
-  --row-h: 28px;
-  --toolbar-h: 36px;
-  --statusbar-h: 24px;
-  --radius: 4px;
+  /* Elevation. On light the shadow does the work; the highlight is a no-op. */
+  --highlight: transparent;
+  --elev-1: 0 1px 2px rgba(15, 19, 25, 0.06);
+  --elev-2: 0 2px 4px rgba(15, 19, 25, 0.06), 0 8px 20px -8px rgba(15, 19, 25, 0.14);
+  --elev-3: 0 4px 8px rgba(15, 19, 25, 0.08), 0 20px 44px -16px rgba(15, 19, 25, 0.22);
+
+  --scrollbar: #c9ced7;
+  --scrollbar-hover: #adb4bf;
+
+  --font-ui:
+    ui-sans-serif, system-ui, -apple-system, 'Segoe UI Variable Text', 'Segoe UI', Roboto,
+    'Helvetica Neue', Arial, sans-serif;
+  --font-mono:
+    ui-monospace, 'Cascadia Code', 'Cascadia Mono', 'JetBrains Mono', Consolas, 'SFMono-Regular',
+    'Liberation Mono', Menlo, monospace;
+
+  /* Density: roomier than before. The old 28/36/24 read as cramped. */
+  --row-h: 30px;
+  --toolbar-h: 40px;
+  --statusbar-h: 26px;
+
+  --radius-sm: 5px;
+  --radius: 7px;
+  --radius-lg: 10px;
+  --radius-xl: 14px;
+
+  --dur-fast: 110ms;
+  --dur: 160ms;
+  --dur-slow: 240ms;
+  --ease: cubic-bezier(0.2, 0.7, 0.3, 1);
 
   color-scheme: light;
 }
 
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme='light']) {
-    --bg: #0f1216;
-    --surface: #171b21;
-    --surface-2: #1e242c;
-    --border: #2a313b;
-    --border-strong: #3a434f;
-    --text: #e6eaf0;
-    --text-2: #a8b2c0;
-    --text-3: #78828f;
-    --accent: #6c9cf8;
-    --accent-weak: #1b2a45;
-    --ok: #58c98a;
-    --warn: #dfb154;
-    --danger: #f0796e;
-    --info: #62b0e0;
+    --bg: #0a0c10;
+    --surface: #12151b;
+    --surface-2: #191d25;
+    --surface-3: #21262f;
 
-    --on-accent: #0f1216;
+    --border: #232833;
+    --border-strong: #343b48;
+
+    --text: #eef1f6;
+    --text-2: #a3adbb;
+    --text-3: #6e7885;
+
+    --accent: #5b8cff;
+    --accent-hover: #7aa3ff;
+    --accent-weak: #16203a;
+    --accent-line: #2d4a8a;
+    --on-accent: #07090d;
+
+    --ok: #4ec98a;
+    --ok-weak: #10241a;
+    --warn: #e0b45f;
+    --warn-weak: #251d0e;
+    --danger: #f37c70;
+    --danger-weak: #2a1513;
+    --info: #63b3e6;
+    --info-weak: #0f2130;
+
+    /* The inset highlight is what stops dark panels looking like flat holes. */
+    --highlight: rgba(255, 255, 255, 0.055);
+    --elev-1: 0 1px 2px rgba(0, 0, 0, 0.4);
+    --elev-2: 0 2px 6px rgba(0, 0, 0, 0.45), 0 10px 26px -10px rgba(0, 0, 0, 0.6);
+    --elev-3: 0 6px 14px rgba(0, 0, 0, 0.5), 0 26px 56px -18px rgba(0, 0, 0, 0.7);
+
+    --scrollbar: #2e3540;
+    --scrollbar-hover: #3d4553;
 
     color-scheme: dark;
   }
 }
 
 :root[data-theme='dark'] {
-  --bg: #0f1216;
-  --surface: #171b21;
-  --surface-2: #1e242c;
-  --border: #2a313b;
-  --border-strong: #3a434f;
-  --text: #e6eaf0;
-  --text-2: #a8b2c0;
-  --text-3: #78828f;
-  --accent: #6c9cf8;
-  --accent-weak: #1b2a45;
-  --ok: #58c98a;
-  --warn: #dfb154;
-  --danger: #f0796e;
-  --info: #62b0e0;
+  --bg: #0a0c10;
+  --surface: #12151b;
+  --surface-2: #191d25;
+  --surface-3: #21262f;
 
-  --on-accent: #0f1216;
+  --border: #232833;
+  --border-strong: #343b48;
+
+  --text: #eef1f6;
+  --text-2: #a3adbb;
+  --text-3: #6e7885;
+
+  --accent: #5b8cff;
+  --accent-hover: #7aa3ff;
+  --accent-weak: #16203a;
+  --accent-line: #2d4a8a;
+  --on-accent: #07090d;
+
+  --ok: #4ec98a;
+  --ok-weak: #10241a;
+  --warn: #e0b45f;
+  --warn-weak: #251d0e;
+  --danger: #f37c70;
+  --danger-weak: #2a1513;
+  --info: #63b3e6;
+  --info-weak: #0f2130;
+
+  --highlight: rgba(255, 255, 255, 0.055);
+  --elev-1: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --elev-2: 0 2px 6px rgba(0, 0, 0, 0.45), 0 10px 26px -10px rgba(0, 0, 0, 0.6);
+  --elev-3: 0 6px 14px rgba(0, 0, 0, 0.5), 0 26px 56px -18px rgba(0, 0, 0, 0.7);
+
+  --scrollbar: #2e3540;
+  --scrollbar-hover: #3d4553;
 
   color-scheme: dark;
 }
@@ -103,10 +178,11 @@
     background: var(--bg);
     color: var(--text);
     font-family: var(--font-ui);
-    /* Base 13px: dense but not cramped, and native-feeling on a desktop. */
-    font-size: 13px;
-    line-height: 1.4;
+    /* 13.5px: still dense, but the old 13px read as undersized on Windows. */
+    font-size: 13.5px;
+    line-height: 1.45;
     -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
     /*
      * No global `select-none`. Text must be selectable — especially error text,
      * paths and fingerprints, which users need to copy.
@@ -148,7 +224,6 @@
     color: var(--text);
   }
 
-  /* Native controls follow the theme rather than the OS default. */
   input,
   textarea,
   select,
@@ -156,24 +231,58 @@
     font: inherit;
     color: inherit;
   }
+
+  /*
+   * Default scrollbars are the clearest tell that a desktop app is a web view.
+   * These are thin, themed, and read as part of the content.
+   */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: var(--scrollbar) transparent;
+  }
+
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: var(--scrollbar);
+    border-radius: 999px;
+    border: 2px solid transparent;
+    background-clip: content-box;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: var(--scrollbar-hover);
+    background-clip: content-box;
+  }
+
+  ::-webkit-scrollbar-corner {
+    background: transparent;
+  }
 }
 
 @layer components {
-  /* Icons: 14–16px, currentColor, hairline strokes. */
+  /* Icons: currentColor, hairline strokes, optically sized. */
   .icon {
-    width: 14px;
-    height: 14px;
+    width: 15px;
+    height: 15px;
     flex: none;
     stroke: currentColor;
-    stroke-width: 1.5;
+    stroke-width: 1.6;
     stroke-linecap: round;
     stroke-linejoin: round;
     fill: none;
   }
 
   .icon-16 {
-    width: 16px;
-    height: 16px;
+    width: 17px;
+    height: 17px;
   }
 
   /* A single dense table row. */
@@ -189,14 +298,80 @@
     text-overflow: ellipsis;
     white-space: nowrap;
   }
+
+  /*
+   * Panel: the standard content container. The inset highlight is what gives a
+   * dark surface an edge instead of looking like a flat cut-out.
+   */
+  .panel {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    box-shadow:
+      var(--elev-1),
+      inset 0 1px 0 0 var(--highlight);
+  }
+
+  /* Floating layer: menus, popovers, dialogs. */
+  .raised {
+    background: var(--surface-3);
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius-lg);
+    box-shadow:
+      var(--elev-3),
+      inset 0 1px 0 0 var(--highlight);
+  }
+
+  /* A hairline that fades at both ends, for section dividers. */
+  .rule-soft {
+    height: 1px;
+    background: linear-gradient(
+      to right,
+      transparent,
+      var(--border) 12%,
+      var(--border) 88%,
+      transparent
+    );
+  }
+}
+
+@layer utilities {
+  .elev-1 {
+    box-shadow:
+      var(--elev-1),
+      inset 0 1px 0 0 var(--highlight);
+  }
+
+  .elev-2 {
+    box-shadow:
+      var(--elev-2),
+      inset 0 1px 0 0 var(--highlight);
+  }
+
+  .elev-3 {
+    box-shadow:
+      var(--elev-3),
+      inset 0 1px 0 0 var(--highlight);
+  }
 }
 
 /* Transitions stay short, and vanish entirely when the user asks for that. */
 @media (prefers-reduced-motion: no-preference) {
   .transition-quick {
-    transition-property: background-color, border-color, color, opacity;
-    transition-duration: 120ms;
-    transition-timing-function: ease-out;
+    transition-property: background-color, border-color, color, opacity, box-shadow, transform;
+    transition-duration: var(--dur-fast);
+    transition-timing-function: var(--ease);
+  }
+
+  .transition-base {
+    transition-property: background-color, border-color, color, opacity, box-shadow, transform;
+    transition-duration: var(--dur);
+    transition-timing-function: var(--ease);
+  }
+
+  /* A control that acknowledges a press. */
+  .press:active {
+    transform: translateY(0.5px) scale(0.995);
   }
 }
 
@@ -207,32 +382,5 @@
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
-    scroll-behavior: auto !important;
   }
-}
-
-/* Scrollbars: quiet, and visible enough to grab. */
-::-webkit-scrollbar {
-  width: 10px;
-  height: 10px;
-}
-
-::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-::-webkit-scrollbar-thumb {
-  background: var(--border-strong);
-  border: 2px solid transparent;
-  background-clip: padding-box;
-  border-radius: 6px;
-}
-
-::-webkit-scrollbar-thumb:hover {
-  background: var(--text-3);
-  background-clip: padding-box;
-}
-
-::-webkit-scrollbar-corner {
-  background: transparent;
 }

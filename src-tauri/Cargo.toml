@@ -52,6 +52,12 @@ rhai = { version = "1", features = ["sync"] }
 tauri = { version = "2", features = [] }
 tauri-plugin-dialog = "2"
 tauri-plugin-notification = "2"
+# Signed auto-update. The updater only accepts artifacts whose minisign
+# signature matches `plugins.updater.pubkey` in tauri.conf.json, and it never
+# installs anything without an explicit user action. `process` supplies the
+# restart used after an update is staged.
+tauri-plugin-updater = "2"
+tauri-plugin-process = "2"
 
 # Error handling
 anyhow = "1"

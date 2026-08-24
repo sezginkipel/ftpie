@@ -173,13 +173,7 @@ export interface DeleteLocalArgs {
 export type TransferDirection = 'upload' | 'download';
 
 export type TransferStatus =
-  | 'queued'
-  | 'active'
-  | 'paused'
-  | 'done'
-  | 'error'
-  | 'cancelled'
-  | 'skipped';
+  'queued' | 'active' | 'paused' | 'done' | 'error' | 'cancelled' | 'skipped';
 
 export const TERMINAL_TRANSFER_STATUSES: readonly TransferStatus[] = [
   'done',
@@ -322,8 +316,13 @@ export interface VaultStatus {
 }
 
 /**
- * Versioned AES-256-GCM blob. The frontend never constructs, reads or sends
- * one — it only ever observes `Bookmark.encryptedPassword` being present.
+ * Versioned AES-256-GCM blob.
+ *
+ * Declared for completeness only: no command returns one any more. `Bookmark`
+ * used to carry the ciphertext, salt and nonce of its stored password, which
+ * gave the renderer credential material it has no use for; the backend now
+ * sends the derived `hasPassword` flag instead. Nothing in the frontend should
+ * need this type.
  */
 export interface EncryptedBlob {
   v: number;
@@ -350,16 +349,21 @@ export interface Bookmark {
   tags: string[];
   createdAt: string;
   /**
-   * Vault-encrypted password, present only when a secret is stored. **Read-only
-   * to the frontend** — never send it back; `create_bookmark`/`update_bookmark`
-   * take a plaintext `password` and encrypt server-side.
+   * True when a password is stored for this bookmark.
+   *
+   * This replaced `encryptedPassword`, which shipped the whole vault-encrypted
+   * blob — ciphertext, salt and nonce — to the webview on every
+   * `list_bookmarks`. The renderer only ever needed the boolean, so that is all
+   * the backend sends now (`BookmarkView` in `src-tauri/src/bookmarks/mod.rs`).
+   * Set passwords by sending a plaintext `password` to
+   * `create_bookmark`/`update_bookmark`, which encrypts it server-side.
    */
-  encryptedPassword?: EncryptedBlob | null;
+  hasPassword: boolean;
 }
 
 /** True when the bookmark has a stored password we would need the vault for. */
 export function hasStoredPassword(b: Bookmark): boolean {
-  return b.encryptedPassword !== null && b.encryptedPassword !== undefined;
+  return b.hasPassword === true;
 }
 
 /** `BookmarkInput` — the payload of `create_bookmark` (`{ input }`). */
@@ -405,12 +409,7 @@ export interface ImportReport {
 // ── Git and deploy (src-tauri/src/git/mod.rs, commands/git.rs) ───────────────
 
 export type GitFileStatus =
-  | 'added'
-  | 'modified'
-  | 'deleted'
-  | 'renamed'
-  | 'typechange'
-  | 'untracked';
+  'added' | 'modified' | 'deleted' | 'renamed' | 'typechange' | 'untracked';
 
 export interface ChangedFile {
   path: string;
@@ -648,12 +647,7 @@ export const SCRIPT_HOST_FUNCTIONS: readonly string[] = [
 
 export type AiProvider = 'anthropic' | 'openai' | 'ollama' | 'custom';
 
-export const AI_PROVIDERS: readonly AiProvider[] = [
-  'anthropic',
-  'openai',
-  'ollama',
-  'custom',
-];
+export const AI_PROVIDERS: readonly AiProvider[] = ['anthropic', 'openai', 'ollama', 'custom'];
 
 /**
  * Externally tagged on `type`. There is no script-execution and no file-upload

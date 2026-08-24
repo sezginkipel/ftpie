@@ -30,25 +30,25 @@ export const PROTOCOLS: Protocol[] = [
   {
     name: 'SFTP',
     port: '22',
-    how: 'Over SSH. Password, or a private key with a passphrase.',
+    how: 'Over SSH, with a password or a private key.',
     encrypted: true
   },
   {
     name: 'FTPS',
     port: '21',
-    how: 'Starts plain, upgrades with AUTH TLS.',
+    how: 'Starts plain, then upgrades with AUTH TLS.',
     encrypted: true
   },
   {
     name: 'FTPS implicit',
     port: '990',
-    how: 'TLS from the first byte. A separate path, not the upgrade reused.',
+    how: 'TLS from the first byte, on its own code path.',
     encrypted: true
   },
   {
     name: 'FTP',
     port: '21',
-    how: 'No encryption. Here because some servers still only speak this.',
+    how: 'No encryption. For hosts that offer nothing else.',
     encrypted: false
   }
 ];
@@ -63,36 +63,36 @@ export interface Feature {
 export const SPOTLIGHTS: Feature[] = [
   {
     icon: 'edit',
-    title: "Saving won't quietly overwrite someone",
-    body: "Open a remote file, edit it, save it. Before writing, ftpie compares what's on the server against what you opened. If it changed, you get the diff and a choice instead of a silent overwrite. The editor is bundled in, so none of this needs a connection to work."
+    title: 'Remote editing that checks for conflicts',
+    body: 'Open a file on the server, edit it, save it. Before writing, ftpie compares what is on the server against the version you opened. If someone changed it in the meantime, you get a line diff and a choice instead of a silent overwrite. The editor ships inside the app, so nothing is loaded from a CDN.'
   },
   {
     icon: 'git',
     title: 'Deploy a commit, then take it back',
-    body: "Pick a branch or tag. ftpie works out what changed since your last deploy and shows you the list — including the files it will delete, which is the part most tools skip. Nothing moves until you say so, and every deploy is recorded so you can go back to an earlier one."
+    body: 'Pick a branch or tag. ftpie works out what changed since your last deploy and shows you the list, including the files it will delete. Nothing moves until you confirm, and every deploy is recorded so you can roll back to an earlier one.'
   }
 ];
 
 export const FEATURES: Feature[] = [
   {
     icon: 'queue',
-    title: 'Transfers you can stop',
-    body: 'Files stream through in chunks, so a 4 GB upload does not depend on your RAM. Real progress, real speed, and cancel actually cancels.'
+    title: 'A queue you can pause and cancel',
+    body: 'Files stream through in 64 KiB chunks, so a 4 GB upload does not depend on your RAM. Every item shows real progress, speed and ETA, and a download lands in a .part file that is renamed only once it finishes.'
   },
   {
     icon: 'shield',
-    title: 'Passwords stay locked',
-    body: 'Saved credentials sit behind a master password. The key exists only while the vault is unlocked, and is wiped when you lock it.'
+    title: 'Saved passwords are encrypted',
+    body: 'Credentials live in a vault encrypted with AES-256-GCM, under a key derived from your master password with Argon2id. The key exists only while the vault is unlocked, and is wiped when you lock it. There is no recovery path.'
   },
   {
     icon: 'script',
-    title: 'Scripting, fenced in',
-    body: 'Automate repetitive jobs in a small embedded language. It cannot read your environment, cannot load code off disk, and a runaway loop is cancellable.'
+    title: 'Sandboxed scripting',
+    body: 'Automate repetitive jobs in a small embedded language. Scripts cannot read your environment or load code off disk, file access stays inside one workspace folder, and a runaway loop can be cancelled.'
   },
   {
     icon: 'ai',
-    title: 'An optional assistant',
-    body: 'Off until you add a key. It can suggest renames, moves and permission changes on the server you are already on. It cannot run anything on its own.'
+    title: 'An optional AI assistant',
+    body: 'Off until you add your own API key. It can propose renames, moves and permission changes on the server you are connected to, but it cannot carry any of them out. You confirm each one.'
   }
 ];
 
@@ -105,27 +105,30 @@ export const NOT_INCLUDED: Excluded[] = [
   {
     name: 'WebDAV and S3',
     reason:
-      'They were on the list once, but they fell through to a plaintext FTP handshake, which meant your credentials went to whatever answered the port. Removed instead of patched.'
+      'Both were on the list once, and both fell through to a plaintext FTP handshake, which sent your credentials to whatever answered the port. Removed instead of patched.'
   },
   {
     name: 'Live collaboration',
     reason:
-      'It never actually worked across a network. Doing it properly needs a server in the middle, which does not exist yet.'
+      'It never actually worked across a network. Doing it properly needs a server in the middle, and there is not one.'
   },
   {
     name: 'A built-in terminal',
-    reason: 'It leaked an SSH connection every time you opened one. Your terminal is better at this.'
+    reason: 'It leaked an SSH connection every time you opened one. Your own terminal does this better.'
   },
   {
     name: 'Cloud sync for saved sites',
     reason:
-      'Your bookmarks are encrypted on your machine. Export is a file you protect yourself. Nothing gets uploaded.'
+      'Your bookmarks are encrypted on your machine. Export is a file you look after yourself. Nothing is uploaded.'
   },
-  { name: 'Analytics of any kind', reason: 'The app makes no request you did not ask for.' },
   {
-    name: 'Auto-update',
+    name: 'Analytics of any kind',
+    reason: 'No telemetry and no usage reporting. The app makes no request you did not ask for.'
+  },
+  {
+    name: 'Silent updates',
     reason:
-      'Off on purpose. An update channel nobody signs is just a way to run code on your machine.'
+      'ftpie can check for a new version and will only install one whose signature it can verify, but it never updates itself without asking. There are no published releases yet, so there is nothing to update from either.'
   }
 ];
 
@@ -136,15 +139,15 @@ export interface SecurityPoint {
 
 export const SECURITY: SecurityPoint[] = [
   {
-    label: 'The listing is not trusted either',
-    body: 'A folder listing comes from the server, so ftpie treats it as untrusted input. A file called "..\\..\\startup.exe" cannot walk out of the folder you chose, and it will not follow a symlink in circles.'
+    label: 'Server listings are treated as untrusted input',
+    body: 'A directory listing arrives from the server, so ftpie checks it before acting on it. A file called "..\..\startup.exe" cannot walk out of the folder you chose, and a recursive transfer will not follow a symlink in circles.'
   },
   {
-    label: 'Plaintext is never quiet about it',
+    label: 'Plain FTP is labelled while you use it',
     body: 'Pick plain FTP and you get a warning when you connect, plus a broken padlock in the status bar for as long as the session is open.'
   },
   {
-    label: 'Errors say what went wrong',
-    body: 'An unknown host, a locked vault and a timeout are three different messages, not one generic failure that teaches you to click retry.'
+    label: 'Errors name the actual problem',
+    body: 'An unknown host, a locked vault and a timeout are three different messages, so you can tell whether to retry or to go and look at something.'
   }
 ];

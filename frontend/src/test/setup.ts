@@ -34,10 +34,7 @@ export const invokeMock = vi.fn(
  * Register a response (or a thrower) for one command. Return value may be a
  * value or a promise; throwing simulates a rejection.
  */
-export function mockInvoke(
-  cmd: string,
-  handler: (args: Record<string, unknown>) => unknown,
-): void {
+export function mockInvoke(cmd: string, handler: (args: Record<string, unknown>) => unknown): void {
   handlers.set(cmd, handler);
 }
 
@@ -90,8 +87,7 @@ vi.mock('@tauri-apps/api/event', () => ({
 
 expect.extend({
   toBeInTheDocument(received: unknown) {
-    const attached =
-      received instanceof HTMLElement && document.body.contains(received);
+    const attached = received instanceof HTMLElement && document.body.contains(received);
     return {
       pass: attached,
       message: () =>

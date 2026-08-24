@@ -2,7 +2,16 @@ import * as RadixContextMenu from '@radix-ui/react-context-menu';
 import type { ReactNode } from 'react';
 
 import { cn } from '../../lib/cn';
-import { menuContentClass, menuItemClass, type MenuItem } from './Menu';
+import {
+  MenuCheckBody,
+  MenuItemBody,
+  menuContentClass,
+  menuDangerClass,
+  menuItemClass,
+  menuLabelClass,
+  menuSeparatorClass,
+  type MenuItem,
+} from './Menu';
 
 export interface ContextMenuProps {
   /** The region that opens the menu on right-click (or the context key). */
@@ -17,8 +26,9 @@ export interface ContextMenuProps {
 
 /**
  * Right-click menu on Radix, with full arrow-key navigation and keyboard
- * activation via the context-menu key. Shares the item shape with {@link Menu}
- * so a call site can offer the same actions in both places.
+ * activation via the context-menu key. Shares the item shape *and the item
+ * rendering* with {@link Menu}, so the same action looks identical wherever the
+ * user reaches it.
  */
 export function ContextMenu({
   children,
@@ -49,20 +59,12 @@ export function ContextMenu({
 
 function renderItem(item: MenuItem): ReactNode {
   if (item.kind === 'separator') {
-    return (
-      <RadixContextMenu.Separator
-        key={item.id}
-        className="my-1 h-px bg-[var(--border)]"
-      />
-    );
+    return <RadixContextMenu.Separator key={item.id} className={menuSeparatorClass} />;
   }
 
   if (item.kind === 'label') {
     return (
-      <RadixContextMenu.Label
-        key={item.id}
-        className="px-2 py-1 text-2xs font-semibold uppercase tracking-wide text-text-3"
-      >
+      <RadixContextMenu.Label key={item.id} className={menuLabelClass}>
         {item.label}
       </RadixContextMenu.Label>
     );
@@ -77,8 +79,7 @@ function renderItem(item: MenuItem): ReactNode {
         onSelect={item.onSelect}
         className={menuItemClass}
       >
-        <span className="w-3.5 text-accent">{item.checked ? '✓' : ''}</span>
-        <span className="flex-1 truncate">{item.label}</span>
+        <MenuCheckBody checked={item.checked} label={item.label} />
       </RadixContextMenu.CheckboxItem>
     );
   }
@@ -88,17 +89,9 @@ function renderItem(item: MenuItem): ReactNode {
       key={item.id}
       disabled={item.disabled}
       onSelect={item.onSelect}
-      className={cn(menuItemClass, item.danger && 'text-danger')}
+      className={cn(menuItemClass, item.danger && menuDangerClass)}
     >
-      {item.icon ? (
-        <span className="flex w-3.5 justify-center">{item.icon}</span>
-      ) : (
-        <span className="w-3.5" />
-      )}
-      <span className="flex-1 truncate">{item.label}</span>
-      {item.shortcut ? (
-        <span className="ml-3 font-mono text-xs text-text-3">{item.shortcut}</span>
-      ) : null}
+      <MenuItemBody icon={item.icon} label={item.label} shortcut={item.shortcut} />
     </RadixContextMenu.Item>
   );
 }

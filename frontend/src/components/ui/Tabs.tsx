@@ -1,4 +1,13 @@
-import { useCallback, useId, useRef, type KeyboardEvent, type ReactNode } from 'react';
+import {
+  useCallback,
+  useEffect,
+  useId,
+  useLayoutEffect,
+  useRef,
+  useState,
+  type KeyboardEvent,
+  type ReactNode,
+} from 'react';
 
 import { cn } from '../../lib/cn';
 
@@ -28,6 +37,11 @@ export interface TabsProps<T extends string> {
  * the same behaviour: one tab stop for the whole list (roving `tabindex`),
  * Left/Right to move, Home/End to jump, and `aria-controls`/`aria-labelledby`
  * tying each tab to its panel.
+ *
+ * The active tab is marked by a single underline element that slides and resizes
+ * between tabs rather than each tab swapping its own border on and off. That is
+ * what makes a tab strip feel like a physical control: the indicator is one
+ * object that moves, so the eye can follow it and knows where it came from.
  */
 export function Tabs<T extends string>({
   tabs,
@@ -39,6 +53,7 @@ export function Tabs<T extends string>({
 }: TabsProps<T>) {
   const baseId = useId();
   const listRef = useRef<HTMLDivElement>(null);
+  const [indicator, setIndicator] = useState<{ left: number; width: number } | null>(null);
 
   const tabId = (id: string) => `${baseId}-tab-${id}`;
   const panelId = (id: string) => `${baseId}-panel-${id}`;
@@ -62,13 +77,35 @@ export function Tabs<T extends string>({
       onValueChange(next.id);
       // Focus follows selection, which is the expected behaviour for automatic
       // activation tabs.
-      listRef.current
-        ?.querySelector<HTMLButtonElement>(`#${CSS.escape(tabId(next.id))}`)
-        ?.focus();
+      listRef.current?.querySelector<HTMLButtonElement>(`#${CSS.escape(tabId(next.id))}`)?.focus();
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [tabs, value, onValueChange, baseId],
   );
+
+  // Measured from the DOM rather than derived from the label length, so the
+  // underline is correct for any font, any translation and any icon.
+  const measure = useCallback(() => {
+    const list = listRef.current;
+    if (!list) return;
+    const active = list.querySelector<HTMLButtonElement>('[aria-selected="true"]');
+    if (!active) {
+      setIndicator(null);
+      return;
+    }
+    setIndicator({ left: active.offsetLeft, width: active.offsetWidth });
+  }, []);
+
+  useLayoutEffect(measure, [measure, value, tabs]);
+
+  useEffect(() => {
+    if (typeof ResizeObserver === 'undefined') return;
+    const list = listRef.current;
+    if (!list) return;
+    const observer = new ResizeObserver(measure);
+    observer.observe(list);
+    return () => observer.disconnect();
+  }, [measure]);
 
   const onKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
     switch (event.key) {
@@ -102,7 +139,7 @@ export function Tabs<T extends string>({
         role="tablist"
         aria-label={label}
         onKeyDown={onKeyDown}
-        className="flex flex-none items-center gap-0.5 border-b border-border"
+        className="relative flex flex-none items-center gap-1 border-b border-border"
       >
         {tabs.map((tab) => {
           const selected = tab.id === value;
@@ -118,11 +155,11 @@ export function Tabs<T extends string>({
               disabled={tab.disabled}
               onClick={() => onValueChange(tab.id)}
               className={cn(
-                'inline-flex h-7 select-none items-center gap-1.5 border-b-2 px-2.5 text-base transition-quick',
+                'relative inline-flex h-9 select-none items-center gap-1.5 rounded-t-sm px-3',
+                'text-base font-medium tracking-tight transition-quick',
+                'focus-visible:outline-2 focus-visible:outline-offset-[-3px]',
                 'disabled:cursor-not-allowed disabled:opacity-50',
-                selected
-                  ? 'border-accent text-text'
-                  : 'border-transparent text-text-2 hover:text-text',
+                selected ? 'text-text' : 'text-text-2 hover:bg-surface-2 hover:text-text',
               )}
             >
               {tab.icon}
@@ -130,6 +167,17 @@ export function Tabs<T extends string>({
             </button>
           );
         })}
+
+        {/* The sliding indicator. Decorative — `aria-selected` is what a screen
+            reader uses. Its transition is a plain CSS one, so the global
+            reduced-motion rule flattens it to an instant jump. */}
+        {indicator ? (
+          <span
+            aria-hidden
+            className="absolute -bottom-px h-[2px] rounded-full bg-accent transition-base"
+            style={{ left: indicator.left, width: indicator.width }}
+          />
+        ) : null}
       </div>
 
       <div
@@ -137,7 +185,7 @@ export function Tabs<T extends string>({
         role="tabpanel"
         aria-labelledby={tabId(value)}
         tabIndex={0}
-        className="min-h-0 flex-1 overflow-y-auto pt-3"
+        className="min-h-0 flex-1 overflow-y-auto overscroll-contain pt-4 focus-visible:outline-none"
       >
         {children}
       </div>

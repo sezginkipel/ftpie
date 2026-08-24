@@ -1,5 +1,5 @@
 /**
- * The 24px status bar: what you are connected to, how many items are in view,
+ * The 26px status bar: what you are connected to, how many items are in view,
  * what the queue is doing, whether the vault is open, and the real version.
  *
  * The old status bar hard-coded "ftpie v0.1.0" and showed nothing else. The
@@ -18,6 +18,7 @@ import { useSessionStore } from '../store/sessionStore';
 import { useTransferStore } from '../store/transferStore';
 import { useUiStore } from '../store/uiStore';
 import { useVaultStore } from '../store/vaultStore';
+import { cn } from '../lib/cn';
 import { Icon, Tooltip } from './ui';
 
 /**
@@ -46,9 +47,7 @@ export function StatusBar() {
   const session = useSessionStore((state) =>
     state.activeId ? state.sessions[state.activeId] : null,
   );
-  const ui = useSessionStore((state) =>
-    state.activeId ? state.ui[state.activeId] : undefined,
-  );
+  const ui = useSessionStore((state) => (state.activeId ? state.ui[state.activeId] : undefined));
   /**
    * The store's `aggregates()` builds a fresh object, so it must not be the
    * selector itself — an uncached snapshot re-renders on every store read.
@@ -93,35 +92,47 @@ export function StatusBar() {
   return (
     <footer
       aria-label={t('common.status')}
-      className="flex h-statusbar shrink-0 items-center gap-3 border-t border-border bg-surface-2 px-2 text-xs text-text-2"
+      // Quieter than everything above it: 11.5px, secondary text, no elevation.
+      // It is the last thing the eye should land on.
+      className="flex h-statusbar shrink-0 items-center gap-2.5 border-t border-border bg-surface-2 px-2.5 text-xs text-text-3"
     >
       {session ? (
-        <span className="flex items-center gap-1">
-          <span className={secure ? 'text-ok' : 'text-danger'}>
+        <span className="flex min-w-0 items-center gap-1.5">
+          {/*
+            Encryption is the one thing in this bar that must read instantly, so
+            it is a tinted chip rather than coloured text — legible before the
+            words next to it are, and not carried by colour alone.
+          */}
+          <span
+            className={cn(
+              'flex items-center gap-1 rounded-sm px-1 text-2xs font-semibold uppercase tracking-wider',
+              secure ? 'bg-ok-weak text-ok' : 'bg-danger-weak text-danger',
+            )}
+          >
             <Icon name={secure ? 'lock' : 'unlock'} />
+            {secure ? session.protocol : t('status.notEncrypted')}
           </span>
-          <span className="font-mono">
+          <span className="cell-truncate font-mono text-text-2">
             {t('status.connectedAs', {
               username: session.username,
               host: session.host,
             })}
           </span>
-          <span className="text-text-3">{session.protocol.toUpperCase()}</span>
-          {!secure ? (
-            <span className="font-semibold text-danger">{t('status.notEncrypted')}</span>
-          ) : null}
         </span>
       ) : (
-        <span className="text-text-3">{t('status.notConnected')}</span>
+        <span className="flex items-center gap-1.5">
+          <Icon name="server" />
+          {t('status.notConnected')}
+        </span>
       )}
 
-      <span className="text-border-strong">|</span>
+      <Divider />
 
       <span className="tnum">
         {t('status.transfers', { active: aggregates.active })}
         {aggregates.queued > 0 ? ` · ${aggregates.queued}` : ''}
       </span>
-      <span className="tnum">
+      <span className={cn('tnum', aggregates.speedBps > 0 && 'text-text-2')}>
         {aggregates.speedBps > 0 ? formatSpeed(aggregates.speedBps) : DASH}
       </span>
 
@@ -132,7 +143,7 @@ export function StatusBar() {
           <button
             type="button"
             onClick={() => openDialog({ kind: 'settings', tab: 'security' })}
-            className="flex items-center gap-1 rounded border border-[var(--warn)] px-1 text-warn"
+            className="press flex items-center gap-1 rounded-sm bg-warn-weak px-1.5 font-medium text-warn transition-quick hover:brightness-105"
           >
             <Icon name="alert-triangle" />
             {quarantined.join(', ')}
@@ -150,7 +161,7 @@ export function StatusBar() {
               : { kind: 'vault', mode: vault?.initialized ? 'unlock' : 'initialize' },
           )
         }
-        className="flex items-center gap-1 rounded px-1 transition-quick hover:bg-surface"
+        className="press flex items-center gap-1 rounded-sm px-1.5 transition-quick hover:bg-surface hover:text-text-2"
       >
         <span className={vault?.unlocked ? 'text-ok' : 'text-text-3'}>
           <Icon name={vault?.unlocked ? 'unlock' : 'lock'} />
@@ -164,7 +175,9 @@ export function StatusBar() {
               : t('status.vaultLocked')}
       </button>
 
-      <span className="font-mono text-text-3">
+      <Divider />
+
+      <span className="tnum font-mono">
         {appInfo.data
           ? `${appInfo.data.name} ${appInfo.data.version}`
           : appInfo.isError
@@ -173,4 +186,9 @@ export function StatusBar() {
       </span>
     </footer>
   );
+}
+
+/** A hairline tick between groups — quieter than the old "|" glyph. */
+function Divider() {
+  return <span aria-hidden className="h-3 w-px shrink-0 bg-border" />;
 }

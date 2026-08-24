@@ -42,8 +42,8 @@ import type {
 import { useSessionStore } from '../store/sessionStore';
 import { validateBaseUrl } from './SettingsDialog';
 import {
-  Badge,
   Button,
+  EmptyState,
   ErrorState,
   Field,
   Icon,
@@ -260,8 +260,8 @@ export function AiAssistant({ className }: AiAssistantProps) {
       className={cn('flex min-h-0 flex-col bg-surface', className)}
       aria-label={t('ai.title')}
     >
-      {/* ── Provider row ── */}
-      <div className="flex flex-none flex-col gap-2 border-b border-border p-2">
+      {/* ── Provider row: chrome, one surface step above the conversation ── */}
+      <div className="flex flex-none flex-col gap-2 border-b border-border bg-surface-2 p-2">
         {providersError ? (
           <ErrorState
             error={providersError}
@@ -297,21 +297,26 @@ export function AiAssistant({ className }: AiAssistantProps) {
                   />
                 )}
               </Field>
-              <Badge tone={info?.hasKey ? 'ok' : info?.requiresKey ? 'danger' : 'neutral'}>
+              <span
+                className={cn(
+                  'mb-1 flex-none rounded-sm px-1.5 py-1 text-2xs uppercase tracking-wider',
+                  info?.hasKey
+                    ? 'bg-ok-weak text-ok'
+                    : info?.requiresKey
+                      ? 'bg-danger-weak text-danger'
+                      : 'bg-surface-3 text-text-2',
+                )}
+              >
                 {info?.hasKey
                   ? t('ai.keyConfigured')
                   : info?.requiresKey
                     ? t('ai.keyNotConfigured')
                     : t('settings.aiProviderNoKey')}
-              </Badge>
+              </span>
             </div>
 
             {info?.needsBaseUrl ? (
-              <Field
-                label={t('ai.baseUrl')}
-                hint={t('ai.baseUrlInvalid')}
-                error={baseUrlError}
-              >
+              <Field label={t('ai.baseUrl')} hint={t('ai.baseUrlInvalid')} error={baseUrlError}>
                 {({ id, describedBy, invalid }) => (
                   <Input
                     id={id}
@@ -327,17 +332,23 @@ export function AiAssistant({ className }: AiAssistantProps) {
             ) : null}
 
             {needsKey ? (
-              <p role="note" className="text-sm text-warn">
-                {t('ai.keyMissing', { provider })} {t('ai.manageKeys')}
+              <p
+                role="note"
+                className="flex items-start gap-2 rounded border border-warn bg-warn-weak px-2.5 py-1.5 text-sm text-text"
+              >
+                <Icon name="key" className="mt-px flex-none text-warn" />
+                <span>
+                  {t('ai.keyMissing', { provider })} {t('ai.manageKeys')}
+                </span>
               </p>
             ) : null}
           </>
         )}
 
         {/* ── Context actually sent ── */}
-        <p className="flex flex-wrap items-center gap-2 text-xs text-text-3">
-          <Icon name="info" />
-          <span className="font-semibold uppercase tracking-wide">{t('ai.context')}</span>
+        <p className="flex flex-wrap items-center gap-2 rounded border border-border bg-surface px-2 py-1 text-xs text-text-3">
+          <Icon name="info" className="flex-none" />
+          <span className="font-semibold uppercase tracking-wider">{t('ai.context')}</span>
           {ui?.remotePath ? (
             <span className="font-mono">{t('ai.contextPath', { path: ui.remotePath })}</span>
           ) : null}
@@ -352,26 +363,47 @@ export function AiAssistant({ className }: AiAssistantProps) {
 
       {/* ── Conversation ── */}
       <div
-        className="min-h-0 flex-1 overflow-auto p-2"
+        className="min-h-0 flex-1 overflow-auto bg-bg p-3"
         role="log"
         aria-label={t('ai.conversation')}
       >
         {turns.length === 0 ? (
-          <p className="text-sm text-text-3">{t('ai.greeting')}</p>
+          <EmptyState
+            icon="sparkles"
+            title={t('ai.greeting')}
+            description={t('ai.actionsRemoteOnly')}
+            compact
+          />
         ) : (
-          <ul className="flex flex-col gap-3">
+          <ul className="flex flex-col gap-4">
             {turns.map((turn) => (
-              <li key={turn.id} className="flex flex-col gap-1">
-                <span className="text-2xs uppercase tracking-wide text-text-3">
+              <li key={turn.id} className="flex flex-col gap-1.5">
+                {/*
+                 * A turn reads as a turn: a speaker chip, then the text in a
+                 * bubble the speaker owns. The user's is the accent side; the
+                 * assistant's is a plain panel, because its content is not
+                 * trusted and should not look authoritative.
+                 */}
+                <span className="flex items-center gap-1.5 text-2xs uppercase tracking-wider text-text-3">
+                  <span
+                    className={cn(
+                      'flex h-4 w-4 flex-none items-center justify-center rounded-sm',
+                      turn.role === 'user'
+                        ? 'bg-accent-weak text-accent'
+                        : 'bg-surface-2 text-text-2',
+                    )}
+                  >
+                    <Icon name={turn.role === 'user' ? 'edit' : 'sparkles'} />
+                  </span>
                   {turn.role === 'user' ? t('ai.you') : t('ai.assistantLabel')}
                 </span>
                 {/* Untrusted text: plain, pre-wrapped, never HTML. */}
                 <p
                   className={cn(
-                    'select-text whitespace-pre-wrap break-words rounded border px-2 py-1 text-base',
+                    'select-text whitespace-pre-wrap break-words rounded-lg border px-3 py-2 text-base leading-relaxed',
                     turn.role === 'user'
-                      ? 'border-accent bg-accent-weak text-text'
-                      : 'border-border bg-surface-2 text-text',
+                      ? 'border-accent-line bg-accent-weak text-text'
+                      : 'border-border bg-surface text-text shadow-e1',
                   )}
                 >
                   {turn.text}
@@ -380,54 +412,91 @@ export function AiAssistant({ className }: AiAssistantProps) {
                 {turn.role === 'assistant' ? (
                   <>
                     {turn.rejectedActions > 0 ? (
-                      <p role="note" className="text-sm text-warn">
-                        {t('ai.rejectedActions', { count: turn.rejectedActions })}
+                      <p
+                        role="note"
+                        className="flex items-start gap-2 rounded border border-border bg-warn-weak px-2.5 py-1.5 text-sm text-text"
+                      >
+                        <Icon name="alert-triangle" className="mt-px flex-none text-warn" />
+                        <span className="tnum">
+                          {t('ai.rejectedActions', { count: turn.rejectedActions })}
+                        </span>
                       </p>
                     ) : null}
 
                     {turn.actions.length === 0 ? (
                       <p className="text-sm text-text-3">{t('ai.noActions')}</p>
                     ) : (
-                      <div className="flex flex-col gap-1.5 rounded border border-border p-1.5">
-                        <p className="text-xs font-semibold uppercase tracking-wide text-text-3">
-                          {t('ai.actionsTitle')}
-                        </p>
-                        <p className="text-xs text-text-3">{t('ai.actionsNote')}</p>
-                        <ul className="flex flex-col gap-1">
+                      <div
+                        className="flex flex-col gap-2 rounded-lg border border-border bg-surface p-2 shadow-e1"
+                        role="group"
+                        aria-label={t('ai.proposals')}
+                      >
+                        <div className="flex flex-wrap items-baseline gap-2">
+                          <p className="text-2xs font-semibold uppercase tracking-wider text-text-3">
+                            {t('ai.actionsTitle')}
+                          </p>
+                          <span className="rounded-sm bg-surface-2 px-1.5 text-2xs tnum text-text-2">
+                            {turn.actions.length}
+                          </span>
+                          <p className="min-w-0 flex-1 text-xs text-text-3">
+                            {t('ai.actionsNote')}
+                          </p>
+                        </div>
+                        <ul className="flex flex-col gap-1.5">
                           {turn.actions.map((proposal, index) => {
                             const key = `${turn.id}:${index}`;
                             const done = applied[key];
                             return (
                               <li
                                 key={key}
-                                className="flex items-start gap-2 border-t border-border pt-1 first:border-t-0 first:pt-0"
+                                // Each proposal is its own card with its own
+                                // button. Nothing is ever applied in bulk, and a
+                                // destructive one is tinted so it cannot be
+                                // clicked through by muscle memory.
+                                className={cn(
+                                  'flex items-start gap-2.5 rounded border p-2 transition-quick',
+                                  proposal.destructive
+                                    ? 'border-danger bg-danger-weak'
+                                    : 'border-border bg-surface-2',
+                                  done && 'opacity-80',
+                                )}
                               >
-                                <Badge
-                                  tone={proposal.destructive ? 'danger' : 'neutral'}
-                                  className="mt-0.5"
+                                <span
+                                  className={cn(
+                                    'mt-px flex-none rounded-sm px-1.5 py-px text-2xs uppercase tracking-wider',
+                                    proposal.destructive
+                                      ? 'bg-danger-weak text-danger'
+                                      : 'bg-surface-3 text-text-2',
+                                  )}
                                 >
                                   {actionKindLabel(proposal.action, t)}
-                                </Badge>
+                                </span>
                                 <div className="min-w-0 flex-1">
                                   {/* Backend-generated description, not the model's. */}
                                   <p className="select-text break-words text-base text-text">
                                     {proposal.description}
                                   </p>
-                                  <p className="select-text break-all font-mono text-xs text-text-3">
+                                  <p className="mt-0.5 select-text break-all font-mono text-xs text-text-3">
                                     {actionPaths(proposal.action).join(' → ')}
                                   </p>
                                   {proposal.destructive ? (
-                                    <p className="text-xs text-danger">
+                                    <p className="mt-1 flex items-center gap-1.5 text-xs font-semibold text-danger">
+                                      <Icon name="alert-triangle" className="flex-none" />
                                       {t('ai.actionDestructive')}
                                     </p>
                                   ) : null}
                                   {done ? (
-                                    <p className="select-text text-xs text-ok">{done}</p>
+                                    <p className="mt-1 flex items-start gap-1.5 rounded-sm bg-ok-weak px-1.5 py-1 text-xs text-ok">
+                                      <Icon name="check" className="mt-px flex-none" />
+                                      <span className="select-text break-words">{done}</span>
+                                    </p>
                                   ) : null}
                                 </div>
                                 <Button
                                   size="sm"
+                                  className="press"
                                   variant={proposal.destructive ? 'danger' : 'secondary'}
+                                  icon={<Icon name={done ? 'check' : 'play'} />}
                                   loading={applying === key}
                                   disabled={Boolean(done) || !session}
                                   onClick={() => void apply(key, proposal)}
@@ -439,7 +508,10 @@ export function AiAssistant({ className }: AiAssistantProps) {
                           })}
                         </ul>
                         {!session ? (
-                          <p role="note" className="text-sm text-warn">
+                          <p
+                            role="note"
+                            className="rounded border border-border bg-warn-weak px-2.5 py-1.5 text-sm text-text"
+                          >
                             {t('ai.needsSessionForActions')}
                           </p>
                         ) : null}
@@ -455,7 +527,7 @@ export function AiAssistant({ className }: AiAssistantProps) {
       </div>
 
       {/* ── Composer ── */}
-      <div className="flex flex-none flex-col gap-1 border-t border-border p-2">
+      <div className="flex flex-none flex-col gap-1.5 border-t border-border bg-surface-2 p-2">
         <Textarea
           rows={3}
           value={prompt}
@@ -470,9 +542,11 @@ export function AiAssistant({ className }: AiAssistantProps) {
           aria-label={t('ai.placeholder')}
         />
         <div className="flex items-center gap-2">
-          <span className="flex-1 text-xs text-text-3">{t('ai.untrustedNote')}</span>
+          <span className="min-w-0 flex-1 text-xs text-text-3">{t('ai.untrustedNote')}</span>
           <Button
             size="sm"
+            variant="ghost"
+            className="press"
             onClick={() => {
               setTurns([]);
               setApplied({});
@@ -484,6 +558,7 @@ export function AiAssistant({ className }: AiAssistantProps) {
           <Button
             size="sm"
             variant="primary"
+            className="press"
             icon={<Icon name="sparkles" />}
             loading={asking}
             disabled={prompt.trim() === '' || needsKey || baseUrlError !== null}

@@ -11,7 +11,7 @@
  * `untrusted_host` and `vault_locked` are handed to their dialogs, which retry
  * this submit once the user has resolved them.
  */
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, type ReactNode } from 'react';
 
 import { useT } from '../lib/i18n';
 import { isAppError } from '../lib/ipc';
@@ -124,8 +124,7 @@ export function ConnectionDialog() {
   const vaultReady = canStorePassword(vaultStatus);
 
   const hostError = submitted && host.trim() === '' ? t('conn.hostRequired') : null;
-  const portError =
-    port === null || port < 1 || port > 65535 ? t('conn.portInvalid') : null;
+  const portError = port === null || port < 1 || port > 65535 ? t('conn.portInvalid') : null;
   const nameError =
     saveBookmark && bookmarkName.trim() === '' ? t('conn.bookmarkNameRequired') : null;
   const valid = host.trim() !== '' && portError === null && nameError === null;
@@ -203,11 +202,12 @@ export function ConnectionDialog() {
       footer={
         <>
           <InlineError error={error} className="mr-auto" />
-          <Button variant="secondary" onClick={closeDialog} disabled={busy}>
+          <Button variant="secondary" className="press" onClick={closeDialog} disabled={busy}>
             {t('common.cancel')}
           </Button>
           <Button
             variant="primary"
+            className="press"
             loading={busy}
             onClick={() => void submit()}
             icon={<Icon name={secure ? 'lock' : 'unlock'} />}
@@ -218,147 +218,164 @@ export function ConnectionDialog() {
       }
     >
       <form
-        className="flex flex-col gap-3"
+        className="flex flex-col gap-4"
         onSubmit={(event) => {
           event.preventDefault();
           void submit();
         }}
       >
-        <div className="grid grid-cols-[1fr_auto] gap-3">
-          <Field label={t('conn.protocol')}>
-            {({ id, describedBy }) => (
-              <Select
-                id={id}
-                aria-describedby={describedBy}
-                value={protocol}
-                onValueChange={setProtocol}
-                options={protocolOptions}
-              />
-            )}
-          </Field>
-          <Field label={t('conn.port')} error={submitted ? portError : null} required>
+        <FormSection label={t('conn.sectionServer')}>
+          <div className="grid grid-cols-[1fr_auto] gap-3">
+            <Field label={t('conn.protocol')}>
+              {({ id, describedBy }) => (
+                <Select
+                  id={id}
+                  aria-describedby={describedBy}
+                  value={protocol}
+                  onValueChange={setProtocol}
+                  options={protocolOptions}
+                />
+              )}
+            </Field>
+            <Field
+              label={t('conn.port')}
+              hint={t('conn.portRange')}
+              error={submitted ? portError : null}
+              required
+            >
+              {({ id, describedBy, invalid }) => (
+                <NumberInput
+                  id={id}
+                  aria-describedby={describedBy}
+                  invalid={invalid}
+                  value={port}
+                  onValueChange={(value) => {
+                    setPortTouched(true);
+                    setPort(value);
+                  }}
+                  min={1}
+                  max={65535}
+                  className="w-24"
+                />
+              )}
+            </Field>
+          </div>
+
+          {/*
+           * Plaintext FTP sends the password in the clear. That is a real warning,
+           * so it gets a real banner — a tinted band with an icon and a heading,
+           * not a line of grey text nobody reads.
+           */}
+          {!secure ? (
+            <div
+              role="note"
+              className="flex items-start gap-2.5 rounded border border-warn bg-warn-weak p-2.5"
+            >
+              <Icon name="alert-triangle" size={16} className="mt-px flex-none text-warn" />
+              <div className="min-w-0">
+                <p className="text-base font-semibold tracking-tight text-text">
+                  {t('conn.plaintextWarningTitle')}
+                </p>
+                <p className="mt-0.5 text-sm text-text-2">{t('conn.plaintextWarningBody')}</p>
+              </div>
+            </div>
+          ) : null}
+
+          <Field label={t('conn.host')} hint={t('conn.hostHint')} error={hostError} required>
             {({ id, describedBy, invalid }) => (
-              <NumberInput
+              <Input
                 id={id}
                 aria-describedby={describedBy}
                 invalid={invalid}
-                value={port}
-                onValueChange={(value) => {
-                  setPortTouched(true);
-                  setPort(value);
-                }}
-                min={1}
-                max={65535}
-                className="w-24"
+                autoFocus
+                mono
+                placeholder={t('conn.hostPlaceholder')}
+                value={host}
+                onChange={(event) => setHost(event.target.value)}
               />
             )}
           </Field>
-        </div>
+        </FormSection>
 
-        {!secure ? (
-          <div className="flex items-start gap-2 rounded border border-[var(--warn)] bg-surface-2 p-2">
-            <Icon name="alert-triangle" size={16} className="mt-0.5 flex-none text-warn" />
-            <div>
-              <p className="text-base font-semibold text-text">
-                {t('conn.plaintextWarningTitle')}
-              </p>
-              <p className="mt-0.5 text-sm text-text-2">{t('conn.plaintextWarningBody')}</p>
-            </div>
-          </div>
-        ) : null}
-
-        <Field label={t('conn.host')} error={hostError} required>
-          {({ id, describedBy, invalid }) => (
-            <Input
-              id={id}
-              aria-describedby={describedBy}
-              invalid={invalid}
-              autoFocus
-              mono
-              placeholder={t('conn.hostPlaceholder')}
-              value={host}
-              onChange={(event) => setHost(event.target.value)}
-            />
-          )}
-        </Field>
-
-        <div className="grid grid-cols-2 gap-3">
-          <Field label={t('conn.username')}>
-            {({ id, describedBy }) => (
-              <Input
-                id={id}
-                aria-describedby={describedBy}
-                autoComplete="off"
-                value={username}
-                onChange={(event) => setUsername(event.target.value)}
-              />
-            )}
-          </Field>
-          <Field label={t('conn.password')}>
-            {({ id, describedBy }) => (
-              <Input
-                id={id}
-                aria-describedby={describedBy}
-                type="password"
-                autoComplete="off"
-                value={password}
-                onChange={(event) => setPassword(event.target.value)}
-              />
-            )}
-          </Field>
-        </div>
-
-        {isSftp ? (
-          <>
-            <Field label={t('conn.privateKey')} hint={t('common.optional')}>
+        <FormSection label={t('conn.sectionCredentials')}>
+          <div className="grid grid-cols-2 gap-3">
+            <Field label={t('conn.username')}>
               {({ id, describedBy }) => (
-                <div className="flex gap-2">
-                  <Input
-                    id={id}
-                    aria-describedby={describedBy}
-                    mono
-                    value={privateKeyPath}
-                    onChange={(event) => setPrivateKeyPath(event.target.value)}
-                  />
-                  <Button
-                    type="button"
-                    variant="secondary"
-                    onClick={() => {
-                      void pickKeyFile(t('conn.privateKeyPick')).then((chosen) => {
-                        if (chosen) setPrivateKeyPath(chosen);
-                      });
-                    }}
-                  >
-                    {t('common.browse')}
-                  </Button>
-                </div>
+                <Input
+                  id={id}
+                  aria-describedby={describedBy}
+                  autoComplete="off"
+                  value={username}
+                  onChange={(event) => setUsername(event.target.value)}
+                />
               )}
             </Field>
-            {privateKeyPath !== '' ? (
-              <Field label={t('conn.keyPassphrase')} hint={t('common.optional')}>
+            <Field label={t('conn.password')}>
+              {({ id, describedBy }) => (
+                <Input
+                  id={id}
+                  aria-describedby={describedBy}
+                  type="password"
+                  autoComplete="off"
+                  value={password}
+                  onChange={(event) => setPassword(event.target.value)}
+                />
+              )}
+            </Field>
+          </div>
+
+          {isSftp ? (
+            <>
+              <Field label={t('conn.privateKey')} hint={t('common.optional')}>
                 {({ id, describedBy }) => (
-                  <Input
-                    id={id}
-                    aria-describedby={describedBy}
-                    type="password"
-                    autoComplete="off"
-                    value={keyPassphrase}
-                    onChange={(event) => setKeyPassphrase(event.target.value)}
-                  />
+                  <div className="flex gap-2">
+                    <Input
+                      id={id}
+                      aria-describedby={describedBy}
+                      mono
+                      value={privateKeyPath}
+                      onChange={(event) => setPrivateKeyPath(event.target.value)}
+                    />
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      onClick={() => {
+                        void pickKeyFile(t('conn.privateKeyPick')).then((chosen) => {
+                          if (chosen) setPrivateKeyPath(chosen);
+                        });
+                      }}
+                    >
+                      {t('common.browse')}
+                    </Button>
+                  </div>
                 )}
               </Field>
-            ) : null}
-          </>
-        ) : (
-          <Switch
-            checked={passiveMode}
-            onCheckedChange={setPassiveMode}
-            label={t('conn.passiveMode')}
-            hint={t('conn.passiveModeHint')}
-          />
-        )}
+              {privateKeyPath !== '' ? (
+                <Field label={t('conn.keyPassphrase')} hint={t('common.optional')}>
+                  {({ id, describedBy }) => (
+                    <Input
+                      id={id}
+                      aria-describedby={describedBy}
+                      type="password"
+                      autoComplete="off"
+                      value={keyPassphrase}
+                      onChange={(event) => setKeyPassphrase(event.target.value)}
+                    />
+                  )}
+                </Field>
+              ) : null}
+            </>
+          ) : (
+            <Switch
+              checked={passiveMode}
+              onCheckedChange={setPassiveMode}
+              label={t('conn.passiveMode')}
+              hint={t('conn.passiveModeHint')}
+            />
+          )}
+        </FormSection>
 
-        <div className="flex flex-col gap-2 rounded border border-border bg-surface-2 p-2">
+        <div className="flex flex-col gap-2.5 rounded-lg border border-border bg-surface-2 p-2.5">
           <Checkbox
             checked={saveBookmark}
             onCheckedChange={setSaveBookmark}
@@ -389,5 +406,24 @@ export function ConnectionDialog() {
         </div>
       </form>
     </Dialog>
+  );
+}
+
+/**
+ * A labelled group of fields.
+ *
+ * The old form was one undifferentiated stack, so "where does the server end
+ * and the login begin" had no answer. A micro-label plus a fading rule gives
+ * the form a rhythm without adding boxes inside boxes.
+ */
+function FormSection({ label, children }: { label: string; children: ReactNode }) {
+  return (
+    <section className="flex flex-col gap-2.5">
+      <div className="flex items-center gap-2">
+        <h3 className="flex-none text-2xs uppercase tracking-wider text-text-3">{label}</h3>
+        <span className="rule-soft flex-1" />
+      </div>
+      {children}
+    </section>
   );
 }

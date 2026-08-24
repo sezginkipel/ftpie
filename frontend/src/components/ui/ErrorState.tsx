@@ -27,6 +27,11 @@ export interface ErrorStateProps {
  * Three things every failure must show: a localized, actionable sentence; the
  * raw technical detail behind a disclosure (selectable, so it can be pasted
  * into a bug report); and a way to try again.
+ *
+ * It mirrors {@link EmptyState}'s composition on purpose, but in `danger`: the
+ * disc is tinted, the icon is a warning, the sentence is at full text colour.
+ * Someone glancing at a pane must be able to tell "failed" from "empty" without
+ * reading a word — that confusion was the worst bug in the old UI.
  */
 export function ErrorState({
   error,
@@ -46,13 +51,30 @@ export function ErrorState({
     <div
       role="alert"
       className={cn(
-        'flex flex-col items-center justify-center gap-2 text-center',
-        compact ? 'p-4' : 'p-8',
+        'flex h-full flex-col items-center justify-center text-center',
+        compact ? 'gap-2 p-5' : 'gap-3 p-10',
         className,
       )}
     >
-      <Icon name="alert-triangle" size={16} className="text-danger" />
-      <p className="max-w-md text-base text-text">{primary}</p>
+      <span
+        aria-hidden
+        className={cn(
+          'flex flex-none items-center justify-center rounded-full',
+          'border border-[var(--danger)] bg-danger-weak text-danger',
+          compact ? 'h-9 w-9' : 'h-12 w-12',
+        )}
+      >
+        <Icon name="alert-triangle" size={16} className={compact ? undefined : 'scale-125'} />
+      </span>
+
+      <p
+        className={cn(
+          'max-w-[46ch] font-medium tracking-tight text-text',
+          compact ? 'text-base' : 'text-md',
+        )}
+      >
+        {primary}
+      </p>
 
       {detail ? (
         <div className="w-full max-w-md">
@@ -60,13 +82,23 @@ export function ErrorState({
             type="button"
             onClick={() => setExpanded((value) => !value)}
             aria-expanded={expanded}
-            className="mx-auto inline-flex items-center gap-1 rounded px-1 text-sm text-text-3 hover:text-text-2"
+            className={cn(
+              'press mx-auto inline-flex items-center gap-1 rounded-sm px-1.5 py-0.5',
+              'text-xs text-text-3 transition-quick hover:bg-surface-2 hover:text-text-2',
+            )}
           >
             <Icon name={expanded ? 'chevron-down' : 'chevron-right'} />
             {expanded ? t('common.hideDetails') : t('common.showDetails')}
           </button>
           {expanded ? (
-            <pre className="mt-1 max-h-40 overflow-auto whitespace-pre-wrap break-words rounded border border-border bg-surface-2 p-2 text-left font-mono text-xs text-text-2">
+            <pre
+              className={cn(
+                'mt-2 max-h-40 overflow-auto overscroll-contain whitespace-pre-wrap break-words',
+                'rounded border border-border bg-surface-2 p-2.5 text-left',
+                'font-mono text-xs leading-relaxed text-text-2',
+                'shadow-[inset_0_1px_2px_rgba(0,0,0,0.06)]',
+              )}
+            >
               {detail}
             </pre>
           ) : null}
@@ -74,14 +106,9 @@ export function ErrorState({
       ) : null}
 
       {onRetry || action ? (
-        <div className="mt-1 flex items-center gap-2">
+        <div className="mt-1 flex flex-wrap items-center justify-center gap-2">
           {onRetry ? (
-            <Button
-              variant="secondary"
-              size="sm"
-              icon={<Icon name="refresh" />}
-              onClick={onRetry}
-            >
+            <Button variant="secondary" size="sm" icon={<Icon name="refresh" />} onClick={onRetry}>
               {t('common.retry')}
             </Button>
           ) : null}
@@ -109,15 +136,18 @@ export function InlineError({ error, className }: InlineErrorProps) {
     <div
       role="alert"
       className={cn(
-        'flex items-start gap-1.5 rounded border border-[var(--danger)] bg-surface-2 px-2 py-1.5 text-left',
+        // Tinted rather than outlined: the fill is what makes an inline error
+        // read as an error without depending on the text colour.
+        'flex items-start gap-2 rounded border border-[var(--danger)] bg-danger-weak',
+        'px-2.5 py-2 text-left',
         className,
       )}
     >
-      <Icon name="alert-circle" className="mt-0.5 flex-none text-danger" />
+      <Icon name="alert-circle" className="mt-[3px] flex-none text-danger" />
       <div className="min-w-0">
-        <p className="text-base text-text">{primary}</p>
+        <p className="text-base leading-snug text-text">{primary}</p>
         {detail && detail !== primary ? (
-          <p className="mt-0.5 break-words font-mono text-xs text-text-3">{detail}</p>
+          <p className="mt-1 break-words font-mono text-xs leading-snug text-text-2">{detail}</p>
         ) : null}
       </div>
     </div>

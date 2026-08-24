@@ -79,31 +79,51 @@ export function ConflictDialog() {
       size="lg"
       footer={
         <>
-          <div className="mr-auto flex items-center gap-1">
-            <span className="text-sm text-text-3">{t('conflict.applyToAll')}</span>
-            <Button size="sm" variant="secondary" onClick={() => applyToAll('overwrite')}>
-              {t('conflict.overwriteAll')}
-            </Button>
-            <Button size="sm" variant="secondary" onClick={() => applyToAll('skip')}>
-              {t('conflict.skipAll')}
-            </Button>
-            <Button size="sm" variant="secondary" onClick={() => applyToAll('rename')}>
+          <div
+            className="mr-auto flex items-center gap-1.5"
+            role="group"
+            aria-label={t('conflict.applyToAll')}
+          >
+            <span className="text-2xs uppercase tracking-wider text-text-3">
+              {t('conflict.applyToAll')}
+            </span>
+            <Button
+              size="sm"
+              variant="ghost"
+              className="press"
+              onClick={() => applyToAll('rename')}
+            >
               {t('conflict.renameAll')}
             </Button>
+            <Button size="sm" variant="ghost" className="press" onClick={() => applyToAll('skip')}>
+              {t('conflict.skipAll')}
+            </Button>
+            <Button
+              size="sm"
+              variant="ghost"
+              className="press"
+              onClick={() => applyToAll('overwrite')}
+            >
+              {t('conflict.overwriteAll')}
+            </Button>
           </div>
-          <Button variant="secondary" onClick={closeDialog}>
+          <Button variant="secondary" className="press" onClick={closeDialog}>
             {t('common.cancel')}
           </Button>
-          <Button variant="primary" onClick={start}>
+          <Button variant="primary" className="press" onClick={start}>
             {t('conflict.start')}
           </Button>
         </>
       }
     >
-      <div role="table" aria-label={t('conflict.title')} className="flex flex-col">
+      <div
+        role="table"
+        aria-label={t('conflict.title')}
+        className="flex flex-col overflow-hidden rounded-lg border border-border"
+      >
         <div
           role="row"
-          className="row shrink-0 gap-2 border-b border-border px-1 text-xs text-text-3"
+          className="row shrink-0 gap-2 border-b border-border bg-surface-2 px-2 text-2xs uppercase tracking-wider text-text-3"
         >
           <span role="columnheader" className="min-w-0 flex-1">
             {t('common.name')}
@@ -123,23 +143,22 @@ export function ConflictDialog() {
           <div
             key={`${entry.item.direction}:${entry.item.remotePath}:${entry.item.localPath}`}
             role="row"
-            className="row shrink-0 gap-2 border-b border-border px-1"
+            className="row shrink-0 gap-2 border-b border-border px-2 last:border-b-0 transition-quick hover:bg-surface-2"
           >
             <span role="cell" className="flex min-w-0 flex-1 items-center gap-1.5">
-              <Icon
-                name={entry.item.direction === 'upload' ? 'upload' : 'download'}
-                className="text-text-3"
-              />
+              <span className="flex h-5 w-5 flex-none items-center justify-center rounded-sm bg-surface-2 text-text-3">
+                <Icon name={entry.item.direction === 'upload' ? 'upload' : 'download'} />
+              </span>
               <span className="cell-truncate font-mono text-sm" title={destinationName(entry)}>
                 {destinationName(entry)}
               </span>
             </span>
-            <span role="cell" className="w-40 shrink-0 tnum text-sm text-text-2">
+            <span role="cell" className="w-40 shrink-0 tnum text-xs text-text-2">
               {entry.existingSize === null ? DASH : formatBytes(entry.existingSize)}
               {' · '}
               {formatDate(entry.existingModified, locale, dateFormat)}
             </span>
-            <span role="cell" className="w-40 shrink-0 tnum text-sm text-text-2">
+            <span role="cell" className="w-40 shrink-0 tnum text-xs text-text-2">
               {entry.incomingSize === null ? DASH : formatBytes(entry.incomingSize)}
               {' · '}
               {formatDate(entry.incomingModified, locale, dateFormat)}
@@ -160,7 +179,10 @@ export function ConflictDialog() {
         ))}
       </div>
 
-      <p className="mt-2 text-sm text-text-3">{t('conflict.renameHint')}</p>
+      <p className="mt-3 flex items-start gap-2 rounded border border-border bg-surface-2 px-2.5 py-2 text-sm text-text-2">
+        <Icon name="info" className="mt-px flex-none text-text-3" />
+        {t('conflict.renameHint')}
+      </p>
     </Dialog>
   );
 }

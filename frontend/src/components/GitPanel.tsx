@@ -50,7 +50,6 @@ import { useSessionStore } from '../store/sessionStore';
 import { DeployHistoryPanel } from './DeployHistoryPanel';
 import {
   AlertDialog,
-  Badge,
   Button,
   Checkbox,
   EmptyState,
@@ -208,31 +207,28 @@ export function GitPanel({ className }: GitPanelProps) {
     if (remoteBase === '' && activeUi?.remotePath) setRemoteBase(activeUi.remotePath);
   }, [activeUi?.remotePath, remoteBase]);
 
-  const loadRepo = useCallback(
-    async (path: string) => {
-      setLoadingStatus(true);
-      setStatusError(null);
-      try {
-        const [nextStatus, nextBranches, nextTags] = await Promise.all([
-          call<GitStatus>('get_git_status', { repoPath: path }),
-          call<string[]>('list_branches', { repoPath: path }),
-          call<string[]>('list_tags', { repoPath: path }),
-        ]);
-        setStatus(nextStatus);
-        setBranches(nextBranches);
-        setTags(nextTags);
-        setRev((current) => current || nextStatus.branch || 'HEAD');
-      } catch (error) {
-        setStatus(null);
-        setBranches([]);
-        setTags([]);
-        setStatusError(error);
-      } finally {
-        setLoadingStatus(false);
-      }
-    },
-    [],
-  );
+  const loadRepo = useCallback(async (path: string) => {
+    setLoadingStatus(true);
+    setStatusError(null);
+    try {
+      const [nextStatus, nextBranches, nextTags] = await Promise.all([
+        call<GitStatus>('get_git_status', { repoPath: path }),
+        call<string[]>('list_branches', { repoPath: path }),
+        call<string[]>('list_tags', { repoPath: path }),
+      ]);
+      setStatus(nextStatus);
+      setBranches(nextBranches);
+      setTags(nextTags);
+      setRev((current) => current || nextStatus.branch || 'HEAD');
+    } catch (error) {
+      setStatus(null);
+      setBranches([]);
+      setTags([]);
+      setStatusError(error);
+    } finally {
+      setLoadingStatus(false);
+    }
+  }, []);
 
   const pickRepo = useCallback(async () => {
     try {
@@ -400,8 +396,13 @@ export function GitPanel({ className }: GitPanelProps) {
         ) : (
           <div className="flex min-h-0 flex-1 flex-col gap-2 overflow-auto p-2">
             {/* ── Repository ── */}
-            <div className="flex items-center gap-2">
-              <Button size="sm" icon={<Icon name="folder-open" />} onClick={() => void pickRepo()}>
+            <div className="-mx-2 -mt-2 mb-0.5 flex h-toolbar flex-none items-center gap-2 border-b border-border bg-surface-2 px-2">
+              <Button
+                size="sm"
+                className="press"
+                icon={<Icon name="folder-open" />}
+                onClick={() => void pickRepo()}
+              >
                 {t('git.pickRepo')}
               </Button>
               {repoPath ? (
@@ -413,6 +414,8 @@ export function GitPanel({ className }: GitPanelProps) {
                   </Tooltip>
                   <Button
                     size="sm"
+                    variant="ghost"
+                    className="press"
                     icon={<Icon name="refresh" />}
                     loading={loadingStatus}
                     onClick={() => void loadRepo(repoPath)}
@@ -441,23 +444,37 @@ export function GitPanel({ className }: GitPanelProps) {
               />
             ) : status ? (
               <>
-                {/* ── Status summary ── */}
-                <div className="flex flex-wrap items-center gap-2 rounded border border-border bg-surface-2 px-2 py-1.5 text-sm">
-                  <Icon name="git-branch" className="text-text-3" />
-                  <span className="font-mono text-text">
+                {/*
+                 * Status strip. `ahead`/`behind` are nullable and mean "no
+                 * upstream" — rendered as such, never as 0/0, which would read
+                 * as "in sync".
+                 */}
+                <div className="flex flex-wrap items-center gap-2 rounded-lg border border-border bg-surface-2 px-2.5 py-2 text-sm shadow-e1">
+                  <Icon name="git-branch" className="flex-none text-accent" />
+                  <span className="font-mono font-medium text-text">
                     {status.detached ? t('git.detached') : (status.branch ?? '—')}
                   </span>
-                  <Badge tone={status.upstream ? 'neutral' : 'warn'}>
+                  <span
+                    className={cn(
+                      'flex-none rounded-sm px-1.5 py-px text-2xs tnum uppercase tracking-wider',
+                      status.upstream ? 'bg-surface-3 text-text-2' : 'bg-warn-weak text-warn',
+                    )}
+                  >
                     {upstreamLabel(status, t)}
-                  </Badge>
-                  <Badge tone={status.isDirty ? 'warn' : 'ok'}>
+                  </span>
+                  <span
+                    className={cn(
+                      'flex-none rounded-sm px-1.5 py-px text-2xs tnum uppercase tracking-wider',
+                      status.isDirty ? 'bg-warn-weak text-warn' : 'bg-ok-weak text-ok',
+                    )}
+                  >
                     {status.isDirty
                       ? t('git.dirty', { count: status.changedFiles.length })
                       : t('git.clean')}
-                  </Badge>
+                  </span>
                   {status.lastCommit ? (
                     <Tooltip content={status.lastCommit.message}>
-                      <span className="min-w-0 truncate font-mono text-xs text-text-2">
+                      <span className="min-w-0 flex-1 truncate font-mono text-xs text-text-3">
                         {status.lastCommit.shortHash} {status.lastCommit.message}
                       </span>
                     </Tooltip>
@@ -465,17 +482,26 @@ export function GitPanel({ className }: GitPanelProps) {
                 </div>
 
                 {status.changedFiles.length > 0 ? (
-                  <details className="rounded border border-border">
-                    <summary className="cursor-default px-2 py-1 text-sm text-text-2">
-                      {t('git.changedFiles')} ({status.changedFiles.length})
+                  <details className="group overflow-hidden rounded border border-border bg-surface">
+                    <summary className="flex cursor-default select-none items-center gap-2 bg-surface-2 px-2 py-1.5 text-sm text-text-2 transition-quick hover:bg-surface-3">
+                      <Icon
+                        name="chevron-right"
+                        className="flex-none text-text-3 transition-base group-open:rotate-90"
+                      />
+                      <span className="font-medium">{t('git.changedFiles')}</span>
+                      <span className="rounded-sm bg-surface-3 px-1.5 text-2xs tnum text-text-2">
+                        {status.changedFiles.length}
+                      </span>
                     </summary>
                     <ul className="max-h-32 overflow-auto border-t border-border">
                       {status.changedFiles.slice(0, LIST_LIMIT).map((file) => (
                         <li
                           key={`${file.status}:${file.path}`}
-                          className="flex h-5 items-center gap-2 px-2 text-xs"
+                          className="flex h-6 items-center gap-2 px-2 text-xs transition-quick hover:bg-surface-2"
                         >
-                          <Badge tone="neutral">{fileStatusLabel(t, file.status)}</Badge>
+                          <span className="w-[76px] flex-none truncate text-2xs uppercase tracking-wider text-text-3">
+                            {fileStatusLabel(t, file.status)}
+                          </span>
                           <span className="truncate font-mono text-text-2">{file.path}</span>
                         </li>
                       ))}
@@ -542,9 +568,10 @@ export function GitPanel({ className }: GitPanelProps) {
                   hint={t('deploy.includeUncommittedHint')}
                 />
 
-                <div className="flex flex-wrap items-center gap-2">
+                <div className="flex flex-wrap items-center gap-2 rounded border border-border bg-surface-2 px-2 py-2">
                   <Button
                     size="sm"
+                    className="press"
                     icon={<Icon name="list" />}
                     loading={previewing}
                     disabled={badGlob !== null || remoteBase.trim() === '' || !session}
@@ -555,10 +582,9 @@ export function GitPanel({ className }: GitPanelProps) {
                   <Button
                     size="sm"
                     variant="primary"
+                    className="press"
                     icon={<Icon name="upload" />}
-                    disabled={
-                      !plan || summary?.empty || deploying || badGlob !== null || !session
-                    }
+                    disabled={!plan || summary?.empty || deploying || badGlob !== null || !session}
                     onClick={() => setConfirmOpen(true)}
                   >
                     {t('deploy.deployNow')}
@@ -567,24 +593,31 @@ export function GitPanel({ className }: GitPanelProps) {
                     <Button
                       size="sm"
                       variant="danger"
+                      className="press"
                       icon={<Icon name="stop" />}
                       onClick={() => void cancelDeploy()}
                     >
                       {t('deploy.cancel')}
                     </Button>
                   ) : null}
-                  <span className="text-xs text-text-3">{t('deploy.dryRunHint')}</span>
+                  <span className="min-w-0 flex-1 text-xs text-text-3">
+                    {t('deploy.dryRunHint')}
+                  </span>
                 </div>
 
                 {!session ? (
-                  <p role="note" className="text-sm text-warn">
+                  <p
+                    role="note"
+                    className="flex items-center gap-2 rounded border border-border bg-warn-weak px-2.5 py-1.5 text-sm text-text"
+                  >
+                    <Icon name="alert-triangle" className="flex-none text-warn" />
                     {t('error.noSession')}
                   </p>
                 ) : null}
 
                 {/* ── Live progress ── */}
                 {deploying ? (
-                  <div className="flex flex-col gap-1 rounded border border-border bg-surface-2 p-2">
+                  <div className="flex flex-col gap-1.5 rounded-lg border border-border bg-surface p-2.5 shadow-e1">
                     <ProgressBar
                       value={
                         progress && progress.total > 0
@@ -670,17 +703,23 @@ export function GitPanel({ className }: GitPanelProps) {
         }}
       >
         {summary?.hasDeletions ? (
-          <div className="rounded border border-danger bg-surface-2 p-2">
-            <p className="text-sm font-semibold text-danger">
-              {t('deploy.deletionsWarningTitle')}
-            </p>
-            <p className="mt-0.5 text-sm text-text-2">
-              {t('deploy.deletionsWarningBody', { count: summary.deletes })}
-            </p>
+          <div className="flex items-start gap-2.5 rounded border border-[var(--danger)] bg-danger-weak p-2.5">
+            <Icon name="trash" size={16} className="mt-px flex-none text-danger" />
+            <div className="min-w-0">
+              <p className="text-base font-semibold tracking-tight text-text">
+                {t('deploy.deletionsWarningTitle')}
+              </p>
+              <p className="mt-0.5 text-sm text-text-2">
+                {t('deploy.deletionsWarningBody', { count: summary.deletes })}
+              </p>
+            </div>
           </div>
         ) : null}
         {plan?.includeUncommitted ? (
-          <p className="text-sm text-warn">{t('deploy.source.worktree')}</p>
+          <p className="mt-2 flex items-center gap-2 rounded border border-border bg-warn-weak px-2.5 py-1.5 text-sm text-text">
+            <Icon name="alert-triangle" className="flex-none text-warn" />
+            {t('deploy.source.worktree')}
+          </p>
         ) : null}
       </AlertDialog>
     </section>
@@ -688,6 +727,46 @@ export function GitPanel({ className }: GitPanelProps) {
 }
 
 // ── Plan rendering ──────────────────────────────────────────────────────────
+
+/**
+ * One number from the plan, sized so it can be read at a glance.
+ *
+ * Deletions are the entry that matters: they now propagate to the server, so the
+ * count is tinted `danger` while uploads are `ok`, and neither is conveyed by
+ * the colour alone — each tile is labelled.
+ */
+function PlanStat({
+  label,
+  value,
+  tone,
+}: {
+  label: string;
+  value: string;
+  tone: 'ok' | 'danger' | 'neutral';
+}) {
+  return (
+    <div
+      className={cn(
+        'flex min-w-[92px] flex-col gap-0.5 rounded border px-2.5 py-1.5',
+        tone === 'ok' && 'border-ok bg-ok-weak',
+        tone === 'danger' && 'border-danger bg-danger-weak',
+        tone === 'neutral' && 'border-border bg-surface-2',
+      )}
+    >
+      <span className="text-2xs uppercase tracking-wider text-text-3">{label}</span>
+      <span
+        className={cn(
+          'text-lg font-semibold tnum tracking-tight',
+          tone === 'ok' && 'text-ok',
+          tone === 'danger' && 'text-danger',
+          tone === 'neutral' && 'text-text',
+        )}
+      >
+        {value}
+      </span>
+    </div>
+  );
+}
 
 function PlanView({
   plan,
@@ -701,51 +780,78 @@ function PlanView({
   const { t } = useT();
 
   return (
-    <div className="flex flex-col gap-1.5 rounded border border-border p-2">
+    <div className="flex flex-col gap-2.5 rounded-lg border border-border bg-surface p-2.5 shadow-e1">
       <div className="flex flex-wrap items-center gap-2">
-        <h3 className="text-sm font-semibold text-text">{t('deploy.planTitle')}</h3>
-        <Badge tone="accent" mono>
+        <h3 className="text-sm font-semibold tracking-tight text-text">{t('deploy.planTitle')}</h3>
+        <span className="select-all rounded-sm bg-accent-weak px-1.5 py-px font-mono text-xs tnum text-accent">
           {plan.commitSha.slice(0, 8)}
-        </Badge>
-        <span className="text-sm tnum text-text-2">
-          {t('deploy.planUploads', { count: summary.uploads })}
         </span>
-        <span
-          className={cn('text-sm tnum', summary.hasDeletions ? 'text-danger' : 'text-text-2')}
-        >
-          {t('deploy.planDeletes', { count: summary.deletes })}
-        </span>
-        <span className="text-sm tnum text-text-3">
-          {t('deploy.planSkipped', { count: summary.skipped })}
-        </span>
-        <span className="text-sm tnum text-text-2">
-          {t('deploy.planBytes', { size: formatBytes(summary.bytes) })}
-        </span>
+        <span className="flex-1" />
         {outcome && !outcome.dryRun ? (
-          <Badge tone={outcome.success ? 'ok' : 'danger'}>
+          <span
+            className={cn(
+              'rounded-sm px-1.5 py-px text-2xs uppercase tracking-wider',
+              outcome.success ? 'bg-ok-weak text-ok' : 'bg-danger-weak text-danger',
+            )}
+          >
             {outcome.success ? t('history.outcomeSuccess') : t('history.outcomeFailure')}
-          </Badge>
+          </span>
         ) : null}
       </div>
 
+      {/* The counts, as the first thing the eye lands on. */}
+      <div className="flex flex-wrap gap-2" role="group" aria-label={t('deploy.planSummaryLabel')}>
+        <PlanStat
+          label={t('deploy.uploadsHeading')}
+          value={String(summary.uploads)}
+          tone={summary.uploads > 0 ? 'ok' : 'neutral'}
+        />
+        <PlanStat
+          label={t('deploy.deletesHeading')}
+          value={String(summary.deletes)}
+          tone={summary.hasDeletions ? 'danger' : 'neutral'}
+        />
+        <PlanStat
+          label={t('deploy.skippedHeading')}
+          value={String(summary.skipped)}
+          tone="neutral"
+        />
+        <PlanStat
+          label={t('deploy.planBytesLabel')}
+          value={formatBytes(summary.bytes)}
+          tone="neutral"
+        />
+      </div>
+
       {summary.empty ? (
-        <p className="text-sm text-text-2">{t('deploy.planEmpty')}</p>
+        <p className="rounded border border-border bg-surface-2 px-2.5 py-2 text-sm text-text-2">
+          {t('deploy.planEmpty')}
+        </p>
       ) : null}
 
       {summary.worktreeUploads > 0 ? (
-        <p role="note" className="text-sm text-warn">
-          {t('deploy.source.worktree')} ({summary.worktreeUploads})
+        <p
+          role="note"
+          className="flex items-center gap-2 rounded border border-border bg-warn-weak px-2.5 py-1.5 text-sm text-text"
+        >
+          <Icon name="alert-triangle" className="flex-none text-warn" />
+          <span className="tnum">
+            {t('deploy.source.worktree')} ({summary.worktreeUploads})
+          </span>
         </p>
       ) : null}
 
       {summary.hasDeletions ? (
-        <div className="rounded border border-danger p-1.5">
-          <p className="text-sm font-semibold text-danger">
-            {t('deploy.deletionsWarningTitle')}
-          </p>
-          <p className="text-xs text-text-2">
-            {t('deploy.deletionsWarningBody', { count: summary.deletes })}
-          </p>
+        <div className="flex items-start gap-2.5 rounded border border-[var(--danger)] bg-danger-weak p-2.5">
+          <Icon name="trash" size={16} className="mt-px flex-none text-danger" />
+          <div className="min-w-0">
+            <p className="text-base font-semibold tracking-tight text-text">
+              {t('deploy.deletionsWarningTitle')}
+            </p>
+            <p className="mt-0.5 text-sm text-text-2">
+              {t('deploy.deletionsWarningBody', { count: summary.deletes })}
+            </p>
+          </div>
         </div>
       ) : null}
 
@@ -805,21 +911,58 @@ function PlanList({
   if (count === 0) return null;
 
   return (
-    <details className="rounded border border-border">
-      <summary className="flex cursor-default items-center gap-1.5 px-2 py-1 text-sm">
-        <Badge tone={tone}>{count}</Badge>
-        <span className="text-text-2">{heading}</span>
+    <details className="group overflow-hidden rounded border border-border bg-surface">
+      {/*
+       * The summary bar carries the tone, so an expanded deletions list is
+       * unmistakably a deletions list even after scrolling into it.
+       */}
+      <summary
+        className={cn(
+          'flex cursor-default select-none items-center gap-2 px-2 py-1.5 text-sm transition-quick',
+          tone === 'danger' &&
+            'bg-danger-weak text-text hover:shadow-[inset_3px_0_0_0_var(--danger)]',
+          tone === 'ok' && 'bg-ok-weak text-text hover:shadow-[inset_3px_0_0_0_var(--ok)]',
+          tone === 'neutral' && 'bg-surface-2 text-text-2 hover:bg-surface-3',
+        )}
+      >
+        <Icon
+          name="chevron-right"
+          className="flex-none text-text-3 transition-base group-open:rotate-90"
+        />
+        <Icon
+          name={tone === 'danger' ? 'trash' : tone === 'ok' ? 'upload' : 'minus'}
+          className={cn(
+            'flex-none',
+            tone === 'danger' && 'text-danger',
+            tone === 'ok' && 'text-ok',
+            tone === 'neutral' && 'text-text-3',
+          )}
+        />
+        <span className="font-medium">{heading}</span>
+        <span
+          className={cn(
+            'rounded-sm px-1.5 text-2xs tnum',
+            tone === 'danger' && 'bg-danger-weak text-danger',
+            tone === 'ok' && 'bg-ok-weak text-ok',
+            tone === 'neutral' && 'bg-surface-3 text-text-2',
+          )}
+        >
+          {count}
+        </span>
       </summary>
       <ul className="max-h-40 overflow-auto border-t border-border">
         {rows.map((row) => (
-          <li key={row.key} className="flex h-5 items-center gap-2 px-2 text-xs">
+          <li
+            key={row.key}
+            className="flex h-6 items-center gap-2 px-2 text-xs transition-quick hover:bg-surface-2"
+          >
             <span className="min-w-0 flex-1 truncate font-mono text-text">{row.left}</span>
             <span className="flex-none truncate font-mono tnum text-text-3">{row.right}</span>
           </li>
         ))}
       </ul>
       {count > rows.length ? (
-        <p className="border-t border-border px-2 py-1 text-xs text-text-3">
+        <p className="border-t border-border bg-surface-2 px-2 py-1 text-xs tnum text-text-3">
           {t('deploy.listTruncated', { count: count - rows.length })}
         </p>
       ) : null}

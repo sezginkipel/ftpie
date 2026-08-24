@@ -149,13 +149,7 @@ describe('buildRows', () => {
       ],
       label,
     );
-    expect(rows.map((row) => row.kind)).toEqual([
-      'group',
-      'item',
-      'item',
-      'group',
-      'item',
-    ]);
+    expect(rows.map((row) => row.kind)).toEqual(['group', 'item', 'item', 'group', 'item']);
     const first = rows[0];
     expect(first.kind === 'group' && first.label).toBe('label:s1');
     expect(first.kind === 'group' && first.count).toBe(2);

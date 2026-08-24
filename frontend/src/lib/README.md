@@ -31,7 +31,7 @@ commands taking a struct want it wrapped (`{ args: {...} }`, `{ input: {...} }`,
 
 ```ts
 const { t, locale, setLocale } = useT();
-t('delete.confirmMany', { count: 3 })   // TKey is compile-checked
+t('delete.confirmMany', { count: 3 }); // TKey is compile-checked
 ```
 
 Default locale `tr`. Every user-visible string goes through `t()` — labels,
@@ -44,8 +44,8 @@ For a rejection: `errorMessage(e, t)` is the localized primary sentence;
 
 ```ts
 const { toast, showError, dismiss, dismissAll } = useToast();
-toast({ title: t('editor.saved', { name }), variant: 'ok' });   // 'info'|'ok'|'warn'|'danger'
-showError(e);                     // localized title + backend detail, danger
+toast({ title: t('editor.saved', { name }), variant: 'ok' }); // 'info'|'ok'|'warn'|'danger'
+showError(e); // localized title + backend detail, danger
 showError(e, 'script.runFailed'); // override the title key
 ```
 
@@ -53,33 +53,33 @@ Auto-dismiss is Radix's (5s, 9s for danger) — do not add your own timers.
 
 ## UI primitives (`components/ui`)
 
-| Component | Key props |
-| --- | --- |
-| `Button` | `variant` primary/secondary/ghost/danger, `size` sm/md, `loading`, `icon`, plus button attrs |
-| `IconButton` | **`label` (required → `aria-label` + title)**, `icon`, `variant`, `size` sm/md, `loading` |
-| `Icon` | `name` (see `IconName`), `size` 14/16, `title` (only when standalone) |
-| `Spinner` | `size`, `label` |
-| `Field` | `label`, `hint`, `error`, `required`; render-prop child gets `{id, describedBy, invalid}` |
-| `Input` | `invalid`, `mono`, plus input attrs |
-| `NumberInput` | `value: number\|null`, `onValueChange(n\|null)` — **never emits NaN**, `min`, `max`, `invalid` |
-| `Select` | `value`, `onValueChange`, `options: {value,label,disabled?}[]`, `invalid` |
-| `Checkbox` | `checked`, `onCheckedChange`, `label` (required), `hint`, `indeterminate`, `disabled` |
-| `Switch` | `checked`, `onCheckedChange`, `label`, `hint`, `disabled` |
-| `Textarea` | `invalid`, `mono`, `rows` |
-| `Dialog` | `open`, `onOpenChange`, `title`, `description`, `size` sm/md/lg/xl, `footer`, `headerExtra`, `showClose`, `dismissible` |
-| `AlertDialog` | `open`, `onOpenChange`, `title`, `description`, **`confirmLabel` must name what and how many**, `cancelLabel`, `tone` danger/primary, `initialFocus` cancel/confirm (default cancel), `loading`, `onConfirm` |
-| `Menu` | `trigger`, `items: MenuItem[]`, `label`, `align`, `side` |
-| `ContextMenu` | `children`, `items: MenuItem[]`, `label`, `disabled` |
-| `Tooltip` | `content`, `side`, `mono`, `disabled`; wrap app in `TooltipProvider` |
-| `ToastProvider` / `useToast` | mount provider inside `I18nProvider` |
-| `ProgressBar` | `value: number\|null` (null = indeterminate), `label`, `tone`, `height` 2/4/6 |
-| `Badge` | `tone` neutral/accent/ok/warn/danger/info, `mono` |
-| `Kbd` | `keys` e.g. `'Mod+Shift+T'` (`Mod` → ⌘/Ctrl) |
-| `Separator` | `orientation`, `semantic` |
-| `Tabs` | `tabs: {id,label,icon?,disabled?}[]`, `value`, `onValueChange`, `label` |
-| `EmptyState` | `title`, `description`, `icon`, `action`, `compact` — **only for genuinely empty** |
-| `ErrorState` | `error` (raw rejection), `title?`, `onRetry`, `action`, `compact` — **required on every failed fetch** |
-| `InlineError` | `error` — one-line form for dialog footers |
+| Component                    | Key props                                                                                                                                                                                                    |
+| ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `Button`                     | `variant` primary/secondary/ghost/danger, `size` sm/md, `loading`, `icon`, plus button attrs                                                                                                                 |
+| `IconButton`                 | **`label` (required → `aria-label` + title)**, `icon`, `variant`, `size` sm/md, `loading`                                                                                                                    |
+| `Icon`                       | `name` (see `IconName`), `size` 14/16, `title` (only when standalone)                                                                                                                                        |
+| `Spinner`                    | `size`, `label`                                                                                                                                                                                              |
+| `Field`                      | `label`, `hint`, `error`, `required`; render-prop child gets `{id, describedBy, invalid}`                                                                                                                    |
+| `Input`                      | `invalid`, `mono`, plus input attrs                                                                                                                                                                          |
+| `NumberInput`                | `value: number\|null`, `onValueChange(n\|null)` — **never emits NaN**, `min`, `max`, `invalid`                                                                                                               |
+| `Select`                     | `value`, `onValueChange`, `options: {value,label,disabled?}[]`, `invalid`                                                                                                                                    |
+| `Checkbox`                   | `checked`, `onCheckedChange`, `label` (required), `hint`, `indeterminate`, `disabled`                                                                                                                        |
+| `Switch`                     | `checked`, `onCheckedChange`, `label`, `hint`, `disabled`                                                                                                                                                    |
+| `Textarea`                   | `invalid`, `mono`, `rows`                                                                                                                                                                                    |
+| `Dialog`                     | `open`, `onOpenChange`, `title`, `description`, `size` sm/md/lg/xl, `footer`, `headerExtra`, `showClose`, `dismissible`                                                                                      |
+| `AlertDialog`                | `open`, `onOpenChange`, `title`, `description`, **`confirmLabel` must name what and how many**, `cancelLabel`, `tone` danger/primary, `initialFocus` cancel/confirm (default cancel), `loading`, `onConfirm` |
+| `Menu`                       | `trigger`, `items: MenuItem[]`, `label`, `align`, `side`                                                                                                                                                     |
+| `ContextMenu`                | `children`, `items: MenuItem[]`, `label`, `disabled`                                                                                                                                                         |
+| `Tooltip`                    | `content`, `side`, `mono`, `disabled`; wrap app in `TooltipProvider`                                                                                                                                         |
+| `ToastProvider` / `useToast` | mount provider inside `I18nProvider`                                                                                                                                                                         |
+| `ProgressBar`                | `value: number\|null` (null = indeterminate), `label`, `tone`, `height` 2/4/6                                                                                                                                |
+| `Badge`                      | `tone` neutral/accent/ok/warn/danger/info, `mono`                                                                                                                                                            |
+| `Kbd`                        | `keys` e.g. `'Mod+Shift+T'` (`Mod` → ⌘/Ctrl)                                                                                                                                                                 |
+| `Separator`                  | `orientation`, `semantic`                                                                                                                                                                                    |
+| `Tabs`                       | `tabs: {id,label,icon?,disabled?}[]`, `value`, `onValueChange`, `label`                                                                                                                                      |
+| `EmptyState`                 | `title`, `description`, `icon`, `action`, `compact` — **only for genuinely empty**                                                                                                                           |
+| `ErrorState`                 | `error` (raw rejection), `title?`, `onRetry`, `action`, `compact` — **required on every failed fetch**                                                                                                       |
+| `InlineError`                | `error` — one-line form for dialog footers                                                                                                                                                                   |
 
 `MenuItem` is a union: `{id,label,icon?,shortcut?,disabled?,danger?,onSelect}`,
 `{kind:'checkbox',...}`, `{kind:'separator',id}`, `{kind:'label',id,label}`.

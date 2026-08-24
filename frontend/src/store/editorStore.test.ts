@@ -52,7 +52,9 @@ describe('open', () => {
     store().setContent('s1:/a.txt', 'my local edits\n');
 
     mockInvoke('editor_open_file', () => opened({ content: 'server\n', hash: 'hash-2' }));
-    const rejection = await store().open('s1', '/a.txt').catch((e: unknown) => e);
+    const rejection = await store()
+      .open('s1', '/a.txt')
+      .catch((e: unknown) => e);
 
     expect(isReopenConflict(rejection)).toBe(true);
     // Both versions are still available: the buffer, and the fetched copy.
@@ -161,7 +163,11 @@ describe('tab lifecycle', () => {
 
   it('tracks dirty tabs for the quit guard', () => {
     store().setContent('s1:/a.txt', 'x');
-    expect(store().dirtyTabs().map((t) => t.id)).toEqual(['s1:/a.txt']);
+    expect(
+      store()
+        .dirtyTabs()
+        .map((t) => t.id),
+    ).toEqual(['s1:/a.txt']);
   });
 
   it('closing a session closes exactly its tabs', () => {

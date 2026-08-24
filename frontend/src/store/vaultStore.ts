@@ -58,19 +58,14 @@ export const useVaultStore = create<VaultState>((set, get) => ({
   },
 
   async changePassword(oldPassword, newPassword) {
-    return run(set, () =>
-      call<VaultStatus>('vault_change_password', { oldPassword, newPassword }),
-    );
+    return run(set, () => call<VaultStatus>('vault_change_password', { oldPassword, newPassword }));
   },
 }));
 
 type SetState = (partial: Partial<VaultState>) => void;
 
 /** Run a vault command with the busy flag and error field maintained. */
-async function run(
-  set: SetState,
-  action: () => Promise<VaultStatus>,
-): Promise<VaultStatus> {
+async function run(set: SetState, action: () => Promise<VaultStatus>): Promise<VaultStatus> {
   set({ busy: true, error: null });
   try {
     const status = await action();

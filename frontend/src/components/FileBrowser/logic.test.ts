@@ -305,7 +305,10 @@ describe('policyForMode', () => {
 });
 
 describe('buildEnqueueItems', () => {
-  const entries = [entry({ name: 'a.txt', path: 'C:\\work\\a.txt' }), entry({ name: 'sub', path: 'C:\\work\\sub', isDir: true })];
+  const entries = [
+    entry({ name: 'a.txt', path: 'C:\\work\\a.txt' }),
+    entry({ name: 'sub', path: 'C:\\work\\sub', isDir: true }),
+  ];
 
   it('builds uploads joining the remote directory with POSIX separators', () => {
     const items = buildEnqueueItems({
@@ -374,9 +377,7 @@ describe('findConflicts', () => {
   });
 
   it('collides case-insensitively when asked, for Windows destinations', () => {
-    expect(findConflicts([{ name: 'README' }], ['readme'], true)).toEqual([
-      { name: 'README' },
-    ]);
+    expect(findConflicts([{ name: 'README' }], ['readme'], true)).toEqual([{ name: 'README' }]);
   });
 });
 
@@ -414,9 +415,7 @@ describe('parseDrag', () => {
   });
 
   it('normalises a missing session id to null', () => {
-    const parsed = parseDrag(
-      JSON.stringify({ side: 'remote', entries: [entry({ name: 'x' })] }),
-    );
+    const parsed = parseDrag(JSON.stringify({ side: 'remote', entries: [entry({ name: 'x' })] }));
     expect(parsed?.sessionId).toBeNull();
   });
 });

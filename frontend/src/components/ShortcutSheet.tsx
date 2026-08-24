@@ -98,17 +98,24 @@ export function ShortcutSheet({ open, onOpenChange }: ShortcutSheetProps) {
       title={t('shortcut.title')}
       description={t('shortcut.intro')}
     >
-      <div className="grid gap-4 sm:grid-cols-2">
+      {/*
+       * One card per group. The heading is chrome on the card, so the eye can
+       * jump between groups instead of reading one long undifferentiated list.
+       */}
+      <div className="grid gap-3 sm:grid-cols-2">
         {SHORTCUT_GROUPS.map((group) => (
-          <section key={group.heading} className="flex flex-col gap-1">
-            <h3 className="text-xs font-semibold uppercase tracking-wide text-text-3">
+          <section
+            key={group.heading}
+            className="flex flex-col overflow-hidden rounded-lg border border-border bg-surface shadow-e1"
+          >
+            <h3 className="flex-none border-b border-border bg-surface-2 px-2.5 py-1.5 text-2xs font-semibold uppercase tracking-wider text-text-3">
               {t(group.heading)}
             </h3>
             <dl className="flex flex-col">
               {group.entries.map((entry) => (
                 <div
                   key={`${group.heading}:${entry.keys}`}
-                  className="flex h-6 items-center justify-between gap-3 border-b border-border/60 last:border-b-0"
+                  className="flex h-7 items-center justify-between gap-3 border-b border-border px-2.5 transition-quick last:border-b-0 hover:bg-surface-2"
                 >
                   <dt className="min-w-0 truncate text-base text-text-2">{t(entry.label)}</dt>
                   <dd className="flex-none">

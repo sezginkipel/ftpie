@@ -15,6 +15,12 @@
  *    discoverable through the shortcut sheet.
  * 4. Panels are toggleable and the transfer queue's height is draggable and
  *    remembered, instead of a permanent 120px placeholder.
+ *
+ * The layout itself is a **gapped grid, not a set of regions divided by
+ * hairlines**: the title bar and the status bar are chrome and span the window,
+ * and everything between them floats on `bg` inside a 6px gutter, so each panel
+ * reads as its own object. Every panel therefore owns its own border and radius;
+ * this file only decides where the gaps are.
  */
 import { QueryClient, QueryClientProvider, useQueryClient } from '@tanstack/react-query';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -43,13 +49,9 @@ import { StatusBar } from './components/StatusBar';
 import { TitleBar } from './components/TitleBar';
 import { TransferQueue } from './components/TransferQueue';
 import { TrustDialog } from './components/TrustDialog';
+import { UpdateBanner } from './components/UpdateBanner';
 import { VaultDialog } from './components/VaultDialog';
-import {
-  AlertDialog,
-  ToastProvider,
-  TooltipProvider,
-  useToast,
-} from './components/ui';
+import { AlertDialog, ToastProvider, TooltipProvider, useToast } from './components/ui';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -282,10 +284,13 @@ function Shell() {
     <div className="flex h-full min-h-0 flex-col overflow-hidden bg-bg text-text">
       <TitleBar />
 
-      <div className="flex min-h-0 flex-1 items-stretch">
+      {/* 6px gutter all round, 6px between panels. Small and consistent beats
+          flush-against-hairlines, and it is what makes the panels read as
+          objects rather than as cut-outs. */}
+      <div className="flex min-h-0 flex-1 items-stretch gap-1.5 p-1.5">
         {panels.sidebar ? <Sidebar /> : null}
 
-        <div className="flex min-w-0 flex-1 flex-col">
+        <div className="flex min-w-0 flex-1 flex-col gap-1.5">
           <Panes />
 
           {/* TransferQueue owns its own collapse state and height. */}
@@ -293,6 +298,10 @@ function Shell() {
 
           {panels.editor ? (
             <>
+              {/*
+                The drag handle is a 6px hit area — the gap itself — with a 2px
+                grip that appears on hover or focus. A 1px line was unhittable.
+              */}
               <div
                 role="separator"
                 aria-orientation="horizontal"
@@ -301,6 +310,7 @@ function Shell() {
                 aria-valuemin={120}
                 aria-valuemax={900}
                 tabIndex={0}
+                data-focus-none
                 onMouseDown={(event) => {
                   dragState.current = { startY: event.clientY, startHeight: editorHeight };
                 }}
@@ -313,12 +323,17 @@ function Shell() {
                     setEditorHeight(clampEditorHeight(editorHeight - 16));
                   }
                 }}
-                className="h-1 shrink-0 cursor-row-resize bg-border transition-quick hover:bg-accent"
-              />
+                className="group -my-1 flex h-1.5 shrink-0 cursor-row-resize items-center justify-center focus-visible:outline-none"
+              >
+                <span
+                  aria-hidden
+                  className="h-0.5 w-16 rounded-full bg-transparent transition-base group-hover:bg-border-strong group-focus-visible:bg-accent group-active:bg-accent"
+                />
+              </div>
               {/* Inline height because it is dragged; a class cannot express it. */}
               <div
                 style={{ height: editorHeight }}
-                className="flex shrink-0 flex-col overflow-hidden border-t border-border"
+                className="flex shrink-0 flex-col overflow-hidden rounded-lg"
               >
                 <EditorPane className="min-h-0 flex-1" />
               </div>
@@ -327,18 +342,18 @@ function Shell() {
         </div>
 
         {panels.git ? (
-          <div className="flex w-[340px] shrink-0 flex-col overflow-hidden border-l border-border">
-            <GitPanel className="min-h-0 flex-1" />
+          <div className="flex w-[340px] shrink-0 flex-col gap-1.5 overflow-hidden">
+            <GitPanel className="min-h-0 flex-1 overflow-hidden rounded-lg" />
             <DeployHistoryPanel
               sessionId={activeId}
               repoPath={null}
-              className="min-h-0 max-h-[40%] border-t border-border"
+              className="min-h-0 max-h-[40%] overflow-hidden rounded-lg"
             />
           </div>
         ) : null}
 
         {panels.ai ? (
-          <AiAssistant className="w-[340px] shrink-0 border-l border-border" />
+          <AiAssistant className="w-[340px] shrink-0 overflow-hidden rounded-lg" />
         ) : null}
       </div>
 
@@ -373,6 +388,9 @@ function Shell() {
         }}
         initialScriptId={dialog.kind === 'scripts' ? dialog.scriptId : undefined}
       />
+
+      {/* Fixed overlay: checks once on mount, never installs on its own. */}
+      <UpdateBanner />
 
       <AlertDialog
         open={quitBlocked}

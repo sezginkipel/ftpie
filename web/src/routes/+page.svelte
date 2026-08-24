@@ -32,15 +32,15 @@
 </script>
 
 <svelte:head>
-  <title>ftpie — a transfer client that checks the server first</title>
+  <title>ftpie — a file transfer client for people who deploy things</title>
   <meta
     name="description"
-    content="Move files over FTP, FTPS and SFTP. ftpie remembers what your servers' keys look like and tells you when one changes, keeps saved passwords locked, edits remote files without overwriting anyone, and can push a git commit and take it back."
+    content="A desktop app for moving files to and from your servers over FTP, FTPS and SFTP. ftpie verifies the server it is talking to, keeps saved passwords encrypted, edits remote files without overwriting a colleague, and can deploy a git commit and roll it back."
   />
   <meta property="og:title" content="ftpie" />
   <meta
     property="og:description"
-    content="A transfer client that checks the server before it hands over your password."
+    content="A desktop file transfer client for developers: FTP, FTPS and SFTP, verified servers, and git deploys you can roll back."
   />
   <meta name="theme-color" content="#f7f7f4" />
 </svelte:head>
@@ -54,17 +54,17 @@
       <!-- Two blocks rather than hand-placed line breaks: the breaks only held
            at one specific width and turned the headline into five lines. -->
       <h1>
-        <span class="ln l1">Most transfer clients will hand your password to whoever answers.</span>
-        <span class="ln l2 accent">ftpie checks first.</span>
+        <span class="ln l1">A desktop app for moving files to and from your servers.</span>
+        <span class="ln l2 accent">It checks the server before it sends anything.</span>
       </h1>
       <p class="hero-lede">
-        It moves files over FTP, FTPS and SFTP, opens them in a proper editor, and pushes a git
-        commit to your server when you're ready. Saved passwords stay locked. If a server's
-        fingerprint changes, you hear about it before anything is sent.
+        ftpie connects over FTP, FTPS and SFTP, opens remote files in a real editor, and deploys a
+        git commit when you are ready. Saved passwords are encrypted. If a server's fingerprint
+        changes, you find out before anything is sent.
       </p>
       <div class="hero-cta">
         <a class="btn btn-primary" href="#try">Try it <Icon name="arrow" size={16} /></a>
-        <a class="btn btn-ghost" href="#checks">What it checks</a>
+        <a class="btn btn-ghost" href="#checks">How it works</a>
       </div>
     </div>
 
@@ -90,10 +90,10 @@
   <div class="wrap">
     <div class="sec-head" data-reveal use:reveal>
       <p class="tag">What it connects to</p>
-      <h2>Four transports, and no quiet fallbacks.</h2>
+      <h2>Protocols and ports.</h2>
       <p class="sec-lede">
-        Everything here is implemented. Nothing on this list downgrades itself to something weaker
-        when the handshake gets awkward.
+        SFTP over SSH, FTPS in both flavours, and plain FTP for hosts that offer nothing else. A
+        session stays on the protocol you picked; nothing quietly drops to a weaker one.
       </p>
     </div>
 
@@ -112,8 +112,8 @@
         </div>
         {#if i === PROTOCOLS.length - 1}
           <p class="tnote">
-            Plain FTP is supported because plenty of hosts still offer nothing else. It is never
-            presented as fine.
+            Plain FTP is here because plenty of hosts still offer nothing else. It sends your
+            password and your files in the clear.
           </p>
         {/if}
       {/each}
@@ -125,12 +125,12 @@
 <section id="checks">
   <div class="wrap">
     <div class="sec-head" data-reveal use:reveal>
-      <p class="tag">Before anything is sent</p>
-      <h2>The check most clients skip.</h2>
+      <p class="tag">Server identity</p>
+      <h2>How ftpie verifies a server.</h2>
       <p class="sec-lede">
-        Accepting any certificate and any host key is a common default. It leaves you with
-        encryption and no idea who you're encrypting to, which is no help at all against someone
-        sitting between you and your server.
+        Accepting any certificate and any host key is a common default, and it leaves you encrypted
+        to whoever answered the port. ftpie records the fingerprint the first time you connect, then
+        compares it on every connection after that.
       </p>
     </div>
 
@@ -146,13 +146,13 @@
             <span class="dlg-btn">Trust this server</span>
           </div>
         </div>
-        <p class="m-note">Nothing has been sent yet. Your password waits for this answer.</p>
+        <p class="m-note">Your username and password are not sent until you answer this.</p>
       </figure>
 
       <div class="joint" aria-hidden="true"><span></span></div>
 
       <figure class="moment alarm" data-reveal use:reveal={180}>
-        <figcaption><span class="step mono">02</span> If it ever changes</figcaption>
+        <figcaption><span class="step mono">02</span> If the fingerprint changes</figcaption>
         <div class="dlg warn">
           <p class="dlg-h">This key is not the one you trusted</p>
           <p class="dlg-b">Someone may be sitting in the middle of this connection.</p>
@@ -163,7 +163,7 @@
             <span class="dlg-btn ghost quiet">Trust the new key</span>
           </div>
         </div>
-        <p class="m-note">Cancel is the obvious button. This is not a dialog to dismiss by reflex.</p>
+        <p class="m-note">The connection stops here. Cancel is the default action; accepting is deliberate.</p>
       </figure>
     </div>
 
@@ -182,10 +182,11 @@
 <section id="does">
   <div class="wrap">
     <div class="sec-head" data-reveal use:reveal>
-      <p class="tag">Past the file copy</p>
-      <h2>Dragging files is the easy part.</h2>
+      <p class="tag">Editing and deploying</p>
+      <h2>What it does besides copying files.</h2>
       <p class="sec-lede">
-        The work is knowing what changed, not stepping on a colleague, and being able to undo it.
+        Two jobs that transfer clients usually leave to you: editing a file on a live server, and
+        getting a release onto that server with a way back.
       </p>
     </div>
 
@@ -244,9 +245,9 @@
     </div>
 
     <p class="honest" data-reveal use:reveal>
-      One thing worth saying: turning up the transfer concurrency helps when you're pushing to
-      several servers. Two files on the same connection still take turns, because that's how a
-      single control connection works. The app says so rather than pretending.
+      One caveat. Raising the transfer concurrency helps when you are pushing to more than one
+      server. Two files on the same connection still take turns, because a single control connection
+      can only carry one at a time. The app says so rather than implying otherwise.
     </p>
   </div>
 </section>
@@ -258,8 +259,8 @@
       <p class="tag">Limits</p>
       <h2>What it won't do.</h2>
       <p class="sec-lede">
-        A feature list is only worth reading if the gaps are in it too. Some of these were taken out
-        because they couldn't be made safe.
+        A feature list is only worth reading if the gaps are in it too. Several of these were taken
+        out because they could not be made safe.
       </p>
     </div>
 
@@ -279,13 +280,14 @@
   <div class="wrap">
     <div class="sec-head" data-reveal use:reveal>
       <p class="tag">Try it</p>
-      <h2>Build it in about five minutes.</h2>
+      <h2>Build it from source.</h2>
       <p class="sec-lede">
         {#if PUBLISHED_BINARIES}
           Signed installers are available for Windows, macOS and Linux.
         {:else}
-          There's no installer to download yet. Release signing isn't set up, and passing around
-          unsigned installers is the same trust problem this whole app is about. So: from source.
+          There is no installer to download yet. Release signing is not set up, and passing around
+          unsigned installers is the same trust problem this app exists to solve. A build takes
+          about five minutes.
         {/if}
       </p>
     </div>
@@ -297,9 +299,9 @@
       </div>
       <pre><code>{#each build as line, i (line)}<span class="pr">$</span>{line}{i < build.length - 1 ? '\n' : ''}{/each}</code></pre>
       <p class="term-f">
-        You'll need Rust, Node 20 or newer, and a C toolchain. On Windows the MSVC toolchain is
-        required to produce installers — the README covers that and a path-with-spaces trap that
-        breaks MinGW builds.
+        You need Rust, Node 20 or newer, and a C toolchain. On Windows, producing installers needs
+        the MSVC toolchain. The README covers that, along with a path-with-spaces trap that breaks
+        MinGW builds.
       </p>
     </div>
 

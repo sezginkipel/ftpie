@@ -25,12 +25,7 @@ export { AlertDialog, type AlertDialogProps } from './AlertDialog';
 export { Menu, menuContentClass, menuItemClass, type MenuProps, type MenuItem } from './Menu';
 export { ContextMenu, type ContextMenuProps } from './ContextMenu';
 export { Tooltip, TooltipProvider, type TooltipProps } from './Tooltip';
-export {
-  ToastProvider,
-  useToast,
-  type ToastOptions,
-  type ToastVariant,
-} from './Toast';
+export { ToastProvider, useToast, type ToastOptions, type ToastVariant } from './Toast';
 
 export { ProgressBar, type ProgressBarProps, type ProgressTone } from './ProgressBar';
 export { Badge, type BadgeProps, type BadgeTone } from './Badge';

@@ -196,8 +196,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
   close(id) {
     set((state) => {
       const tabs = state.tabs.filter((tab) => tab.id !== id);
-      const activeId =
-        state.activeId === id ? (tabs[tabs.length - 1]?.id ?? null) : state.activeId;
+      const activeId = state.activeId === id ? (tabs[tabs.length - 1]?.id ?? null) : state.activeId;
       return { tabs, activeId };
     });
   },

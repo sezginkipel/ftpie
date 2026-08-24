@@ -7,7 +7,77 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-_Nothing yet._
+### Added
+
+- **Signed auto-updater.** ftpie now checks
+  `releases/latest/download/latest.json` once at startup and, when a newer
+  release exists, shows a notice with the version, the release notes, a download
+  progress bar, and Install / Later actions. Two commands back it:
+  `update_check` (returns `null` when already up to date) and `update_install`
+  (downloads, verifies, installs, relaunches). Download progress is emitted as
+  `update:progress` with `{ downloaded, total }`.
+- Updater bundles are signed: `bundle.createUpdaterArtifacts` is enabled and
+  `.github/workflows/release.yml` signs every artifact with
+  `TAURI_SIGNING_PRIVATE_KEY` and publishes the merged `latest.json` manifest,
+  with a `verify-manifest` job that fails the release if either is missing.
+- `rust-toolchain.toml` pins the Rust toolchain (`1.98.0`, with `rustfmt` and
+  `clippy`) so a local build and CI cannot resolve different compilers. A
+  toolchain five releases behind had been passing lints that CI rejected.
+  Bumping the pin is a deliberate PR; see the README's contributing section.
+- `.github/dependabot.yml` covering all four ecosystems in the repository —
+  cargo (workspace root, where `Cargo.lock` lives), npm in `frontend`, npm in
+  `web`, and GitHub Actions. Weekly, with minor and patch updates grouped per
+  ecosystem and open-PR limits, so it is one reviewable PR rather than a stream.
+
+### Changed
+
+- `list_bookmarks`, `create_bookmark` and `update_bookmark` now return a
+  `BookmarkView` instead of a `Bookmark`. The wire shape drops
+  `encryptedPassword` and gains a derived `hasPassword: boolean`;
+  `Bookmark.encryptedPassword` still exists and still serializes to
+  `bookmarks.json`, so the on-disk format and the encrypted export/import
+  archives are unchanged. Frontend consumers use `hasStoredPassword(bookmark)`
+  exactly as before.
+
+### Fixed
+
+- **An interrupted master-password change can no longer strand the stored
+  secrets.** `Vault::change_password` now rolls *forward*: it publishes the new
+  key as `vault.json`'s primary verifier — retaining the previous one as a
+  `fallback` entry — *before* re-encrypting anything, and drops the fallback only
+  after the re-key succeeded. The invariant is that the file always verifies
+  every key any secret could currently be under, so no single failure can make a
+  secret unreadable. Previously a failed verifier write followed by a failed
+  rollback re-key left the secrets under a key that existed nowhere on disk, and
+  the error told the user to "re-enter the new password to recover" — which
+  `derive_and_verify` could not honour, because it only ever checked the old
+  on-disk verifier. Every error message on these paths now names the password
+  that actually works. A `vault.json` from an earlier version loads unchanged,
+  and one written by a clean change carries no `fallback` field.
+
+### Security
+
+- **Credential ciphertext no longer crosses the IPC boundary.** `list_bookmarks`
+  used to hand the webview each stored password's ciphertext, salt and nonce,
+  and revealed which bookmarks held a secret even while the vault was locked.
+  The renderer only ever needed the boolean, so it now receives only
+  `hasPassword`.
+- **The script workspace refuses to traverse symlinks.** `Workspace::resolve`
+  canonicalized the deepest *existing* ancestor, but `Path::exists()` follows
+  links, so a **dangling** symlink planted inside the workspace counted as
+  non-existent, survived into the unresolved tail, and `write_file` then created
+  its target outside the root. Every component is now checked with
+  `symlink_metadata` and any symlink is refused outright — a link's target can
+  be swapped between the check and the write, so there is nothing about it worth
+  trusting, and a script sandbox has no need to follow one. Planting the link
+  requires another process, so this was defence in depth.
+- The updater verifies each downloaded artifact's minisign signature against the
+  public key pinned in `tauri.conf.json` before installing; verification
+  failures are surfaced as errors rather than ignored. **Nothing is ever
+  installed automatically** — checking may happen on startup, installing is
+  always an explicit user action.
+- The new capabilities are the narrowest that work: `updater:default` plus
+  `process:allow-restart`. `process:allow-exit` is deliberately not granted.
 
 ## [0.1.0] — 2026-08-24
 

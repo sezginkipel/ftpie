@@ -12,7 +12,8 @@
  * loudly, because otherwise the user's bookmarks simply appear to have vanished.
  */
 import { useQuery } from '@tanstack/react-query';
-import { useEffect, useState } from 'react';
+import type { ReactNode } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 
 import { cn } from '../lib/cn';
 import { useT } from '../lib/i18n';
@@ -57,6 +58,23 @@ export function Sidebar() {
   const search = useBookmarkStore((state) => state.search);
 
   const connectBookmark = useSessionStore((state) => state.connectBookmark);
+  const sessions = useSessionStore((state) => state.sessions);
+  /**
+   * Which bookmarks are already live. Sessions do not carry the bookmark they
+   * came from, so identity is the tuple that actually defines a connection.
+   * Read-only, derived, and it makes the sidebar agree with the tab bar.
+   */
+  const liveKeys = useMemo(
+    () =>
+      new Set(
+        Object.values(sessions).map(
+          (session) => `${session.protocol}://${session.username}@${session.host}:${session.port}`,
+        ),
+      ),
+    [sessions],
+  );
+  const isLive = (bookmark: Bookmark) =>
+    liveKeys.has(`${bookmark.protocol}://${bookmark.username}@${bookmark.host}:${bookmark.port}`);
   const openDialog = useUiStore((state) => state.openDialog);
   const openDialogForError = useUiStore((state) => state.openDialogForError);
 
@@ -139,11 +157,13 @@ export function Sidebar() {
   return (
     <aside
       aria-label={t('bookmark.title')}
-      className="flex w-[220px] shrink-0 flex-col overflow-hidden border-r border-border bg-surface"
+      // A panel, not a wall: the sidebar is an object on the app ground with the
+      // same radius and elevation as the file panes.
+      className="panel flex w-[236px] shrink-0 flex-col overflow-hidden"
     >
-      <div className="flex h-8 shrink-0 items-center gap-1 border-b border-border px-2">
+      <div className="flex h-toolbar shrink-0 items-center gap-1 border-b border-border bg-surface-2 px-2.5">
         <Icon name="bookmark" className="text-text-3" />
-        <span className="flex-1 text-xs font-semibold uppercase tracking-wide text-text-2">
+        <span className="flex-1 text-2xs font-semibold uppercase tracking-wider text-text-2">
           {t('bookmark.title')}
         </span>
         <IconButton
@@ -151,6 +171,7 @@ export function Sidebar() {
           icon={<Icon name="upload" />}
           size="sm"
           variant="ghost"
+          className="press"
           onClick={() => openDialog({ kind: 'bookmarkExport' })}
         />
         <IconButton
@@ -158,14 +179,15 @@ export function Sidebar() {
           icon={<Icon name="download" />}
           size="sm"
           variant="ghost"
+          className="press"
           disabled={bookmarksReadOnly}
           onClick={() => openDialog({ kind: 'bookmarkImport' })}
         />
       </div>
 
       {bookmarksReadOnly ? (
-        <div className="m-2 flex flex-col gap-1 rounded border border-[var(--warn)] bg-surface-2 p-2">
-          <span className="flex items-center gap-1 text-sm font-semibold text-warn">
+        <div className="m-2 flex flex-col gap-1 rounded bg-warn-weak p-2 shadow-e1">
+          <span className="flex items-center gap-1.5 text-sm font-semibold text-warn">
             <Icon name="alert-triangle" />
             {t('vault.quarantinedTitle')}
           </span>
@@ -173,13 +195,35 @@ export function Sidebar() {
         </div>
       ) : null}
 
-      <div className="px-2 py-1.5">
-        <Input
-          value={query}
-          onChange={(event) => setQuery(event.target.value)}
-          placeholder={t('bookmark.search')}
-          aria-label={t('bookmark.search')}
-        />
+      {/*
+        The search field is part of the sidebar's own chrome rather than a
+        control dropped into it: it shares the header's surface, the icon lives
+        inside the field, and a hairline closes the block off from the list.
+      */}
+      <div className="shrink-0 border-b border-border bg-surface-2 px-2 py-1.5">
+        <div className="relative">
+          <Icon
+            name="search"
+            className="pointer-events-none absolute left-2 top-1/2 -translate-y-1/2 text-text-3"
+          />
+          <Input
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+            placeholder={t('bookmark.search')}
+            aria-label={t('bookmark.search')}
+            className="h-7 pl-7 pr-7 text-sm"
+          />
+          {query !== '' ? (
+            <IconButton
+              label={t('common.clear')}
+              icon={<Icon name="x" />}
+              size="sm"
+              variant="ghost"
+              onClick={() => setQuery('')}
+              className="absolute right-1 top-1/2 -translate-y-1/2"
+            />
+          ) : null}
+        </div>
       </div>
 
       <div className="min-h-0 flex-1 overflow-y-auto">
@@ -226,6 +270,7 @@ export function Sidebar() {
                   key={bookmark.id}
                   bookmark={bookmark}
                   busy={connecting === bookmark.id}
+                  connected={isLive(bookmark)}
                   items={menuFor(bookmark)}
                   onConnect={() => connect(bookmark)}
                 />
@@ -234,16 +279,15 @@ export function Sidebar() {
           )
         ) : (
           groups.map((group) => (
-            <section key={group.tag || 'untagged'} className="py-1">
-              <h2 className="px-2 py-0.5 text-2xs font-semibold uppercase tracking-wide text-text-3">
-                {group.tag === '' ? t('bookmark.untagged') : group.tag}
-              </h2>
+            <section key={group.tag || 'untagged'} className="pb-1 pt-2 first:pt-1">
+              <SectionLabel>{group.tag === '' ? t('bookmark.untagged') : group.tag}</SectionLabel>
               <ul>
                 {group.bookmarks.map((bookmark) => (
                   <BookmarkRow
                     key={`${group.tag}:${bookmark.id}`}
                     bookmark={bookmark}
                     busy={connecting === bookmark.id}
+                    connected={isLive(bookmark)}
                     items={menuFor(bookmark)}
                     onConnect={() => connect(bookmark)}
                   />
@@ -254,27 +298,23 @@ export function Sidebar() {
         )}
       </div>
 
-      <div className="shrink-0 border-t border-border">
-        <h2 className="px-2 py-1 text-2xs font-semibold uppercase tracking-wide text-text-3">
-          {t('places.title')}
-        </h2>
+      <div className="shrink-0 border-t border-border bg-surface pt-1.5">
+        <SectionLabel>{t('places.title')}</SectionLabel>
         {drives.isError ? (
-          <ErrorState
-            error={drives.error}
-            compact
-            onRetry={() => void drives.refetch()}
-          />
+          <ErrorState error={drives.error} compact onRetry={() => void drives.refetch()} />
         ) : (
-          <ul className="max-h-40 overflow-y-auto pb-1">
+          <ul className="max-h-40 overflow-y-auto pb-1.5">
             {(drives.data ?? []).map((drive) => (
               <li key={drive.path}>
                 <button
                   type="button"
                   onClick={() => navigateLocalPane(drive.path)}
                   title={drive.path}
-                  className="row w-full gap-1.5 px-2 text-left transition-quick hover:bg-surface-2"
+                  className="row w-full gap-2 pl-2.5 pr-2 text-left text-text-2 transition-quick hover:bg-surface-2 hover:text-text"
                 >
-                  <Icon name="drive" className="text-text-3" />
+                  <span className="flex w-4 shrink-0 justify-center">
+                    <Icon name="drive" className="text-text-3" />
+                  </span>
                   <span className="cell-truncate text-sm">{drive.label}</span>
                 </button>
               </li>
@@ -307,14 +347,25 @@ export function Sidebar() {
   );
 }
 
+/** A quiet uppercase micro-label that separates one section from the next. */
+function SectionLabel({ children }: { children: ReactNode }) {
+  return (
+    <h2 className="px-2.5 pb-1 text-2xs font-semibold uppercase tracking-wider text-text-3">
+      {children}
+    </h2>
+  );
+}
+
 interface BookmarkRowProps {
   bookmark: Bookmark;
   busy: boolean;
+  /** A session for this host is already open. */
+  connected: boolean;
   items: MenuItem[];
   onConnect: () => void;
 }
 
-function BookmarkRow({ bookmark, busy, items, onConnect }: BookmarkRowProps) {
+function BookmarkRow({ bookmark, busy, connected, items, onConnect }: BookmarkRowProps) {
   const { t } = useT();
 
   return (
@@ -324,23 +375,46 @@ function BookmarkRow({ bookmark, busy, items, onConnect }: BookmarkRowProps) {
           <button
             type="button"
             onClick={onConnect}
+            aria-current={connected ? 'true' : undefined}
             title={`${bookmark.username}@${bookmark.host}:${bookmark.port}`}
+            // Deliberately the same language as a selected file row: the tinted
+            // background plus a 2px inset accent left edge. One selection idiom
+            // across the whole shell.
+            style={connected ? { boxShadow: 'inset 2px 0 0 0 var(--accent)' } : undefined}
             className={cn(
-              'row min-w-0 flex-1 gap-1.5 px-2 text-left transition-quick hover:bg-surface-2',
+              'row min-w-0 flex-1 gap-2 pl-2.5 pr-2 text-left transition-quick',
+              connected
+                ? 'bg-accent-weak text-text'
+                : 'text-text-2 hover:bg-surface-2 hover:text-text',
             )}
           >
-            {busy ? (
-              <Spinner label={t('conn.connecting')} />
-            ) : (
-              <Icon
-                name={bookmark.protocol === 'ftp' ? 'unlock' : 'lock'}
-                className={bookmark.protocol === 'ftp' ? 'text-danger' : 'text-text-3'}
-              />
-            )}
+            <span className="flex w-4 shrink-0 items-center justify-center">
+              {busy ? (
+                <Spinner label={t('conn.connecting')} />
+              ) : (
+                <Icon
+                  name={bookmark.protocol === 'ftp' ? 'unlock' : 'lock'}
+                  className={
+                    bookmark.protocol === 'ftp'
+                      ? 'text-danger'
+                      : connected
+                        ? 'text-accent'
+                        : 'text-text-3'
+                  }
+                />
+              )}
+            </span>
             <span className="cell-truncate min-w-0 flex-1 text-sm">{bookmark.name}</span>
+            {connected ? (
+              <Tooltip content={t('bookmark.connected')}>
+                <span className="shrink-0 rounded-sm bg-ok-weak px-1 text-2xs font-semibold uppercase tracking-wider text-ok">
+                  {t('bookmark.connected')}
+                </span>
+              </Tooltip>
+            ) : null}
             {hasStoredPassword(bookmark) ? (
               <Tooltip content={t('bookmark.hasPassword')}>
-                <span className="text-text-3">
+                <span className="shrink-0 text-text-3">
                   <Icon name="key" />
                 </span>
               </Tooltip>
@@ -437,9 +511,7 @@ function BookmarkExportDialog() {
         </Field>
         {archive !== '' ? (
           <Field label={t('common.export')}>
-            {({ id }) => (
-              <Textarea id={id} mono readOnly rows={6} value={archive} />
-            )}
+            {({ id }) => <Textarea id={id} mono readOnly rows={6} value={archive} />}
           </Field>
         ) : null}
       </div>

@@ -44,9 +44,20 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Read the pinned toolchain
+        id: pin
+        shell: bash
+        run: |
+          channel=$(grep -E '^channel' rust-toolchain.toml | cut -d'"' -f2)
+          echo "channel=$channel" >> "$GITHUB_OUTPUT"
+
+      # Reads the version from rust-toolchain.toml, so the pin is the only
+      # place a toolchain is chosen. Pinning `stable` here as well would
+      # install a second toolchain that cargo then ignores.
       - name: Install Rust toolchain
-        uses: dtolnay/rust-toolchain@stable
+        uses: dtolnay/rust-toolchain@master
         with:
+          toolchain: ${{ steps.pin.outputs.channel }}
           targets: ${{ matrix.target }}
 
       - name: Install Linux system dependencies
@@ -95,21 +106,30 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
           # =================================================================
-          # UPDATER SIGNING  (currently DISABLED — no updater endpoint is
-          # configured in tauri.conf.json, so nothing is signed today.)
+          # UPDATER SIGNING  (ENABLED)
           #
-          # To enable:
-          #   1. `npx tauri signer generate -w ~/.tauri/ftpie.key`
-          #   2. Store the PRIVATE key as the TAURI_SIGNING_PRIVATE_KEY secret
-          #      and its passphrase as TAURI_SIGNING_PRIVATE_KEY_PASSWORD.
-          #   3. Put the PUBLIC key in tauri.conf.json under
-          #      plugins.updater.pubkey, add plugins.updater.endpoints, and add
-          #      the tauri-plugin-updater dependency + `updater:default`
-          #      permission to capabilities/default.json.
-          #   4. Uncomment the two lines below.
+          # `bundle.createUpdaterArtifacts` is true and `plugins.updater.pubkey`
+          # in tauri.conf.json holds the PUBLIC half of the release key, so
+          # every bundle produced here is accompanied by a `.sig` minisign
+          # signature and `includeUpdaterJson` publishes the `latest.json`
+          # manifest the app polls.
+          #
+          # Both secrets must exist in Settings → Secrets and variables →
+          # Actions:
+          #   TAURI_SIGNING_PRIVATE_KEY           the PRIVATE key file's contents
+          #   TAURI_SIGNING_PRIVATE_KEY_PASSWORD  its passphrase
+          #
+          # The key in use was generated with an EMPTY passphrase, so
+          # TAURI_SIGNING_PRIVATE_KEY_PASSWORD must be created as an empty
+          # secret. It cannot be omitted: tauri-action prompts for a passphrase
+          # when the variable is unset and the build then hangs.
+          #
+          # If either secret is missing the bundling step fails rather than
+          # silently shipping unsigned artifacts — an unsigned update channel
+          # is a remote code execution channel.
           # =================================================================
-          # TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
-          # TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
 
           # =================================================================
           # WINDOWS CODE SIGNING (Authenticode)
@@ -152,3 +172,33 @@ jobs:
           releaseDraft: true
           prerelease: false
           args: ${{ matrix.args }}
+          # Emit and upload `latest.json` — the manifest
+          # `plugins.updater.endpoints` points at. Each matrix job merges its
+          # platform into the manifest already attached to the release, so all
+          # four platforms end up in one file.
+          includeUpdaterJson: true
+          updaterJsonPreferNsis: true
+
+  verify-manifest:
+    name: verify updater manifest
+    needs: bundle
+    runs-on: ubuntu-latest
+    steps:
+      - name: Assert latest.json was published
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ github.event.inputs.tag || github.ref_name }}
+        run: |
+          # A release without `latest.json` leaves every installed copy of the
+          # app polling a 404 forever, and nothing else in the pipeline would
+          # notice. Fail loudly instead.
+          assets=$(gh release view "$TAG" --repo "$GITHUB_REPOSITORY"             --json assets --jq '.assets[].name')
+          echo "$assets"
+          echo "$assets" | grep -qx 'latest.json' || {
+            echo "::error::latest.json is missing from release $TAG — the updater endpoint would 404."
+            exit 1
+          }
+          echo "$assets" | grep -q '\.sig$' || {
+            echo "::error::no .sig signatures were uploaded for release $TAG — check TAURI_SIGNING_PRIVATE_KEY."
+            exit 1
+          }

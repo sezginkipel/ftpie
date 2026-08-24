@@ -32,13 +32,7 @@ import { cn } from '../../lib/cn';
 import { formatBytes, parentPath } from '../../lib/format';
 import { useT } from '../../lib/i18n';
 import { call } from '../../lib/ipc';
-import type {
-  LocalListing,
-  PaneSide,
-  RemoteFile,
-  SortKey,
-  SortState,
-} from '../../lib/types';
+import type { LocalListing, PaneSide, RemoteFile, SortKey, SortState } from '../../lib/types';
 import { useSettingsStore } from '../../store/settingsStore';
 import { useUiStore } from '../../store/uiStore';
 import {
@@ -76,7 +70,8 @@ import {
   type PaneEntry,
 } from './logic';
 
-const ROW_HEIGHT = 28;
+/** Matches `--row-h` in `globals.css`; the virtualizer needs it as a number. */
+const ROW_HEIGHT = 30;
 /** How long a type-ahead buffer survives without another keystroke. */
 const TYPE_AHEAD_TIMEOUT = 900;
 
@@ -363,14 +358,8 @@ export function FilePane({
       const dragged = selectedSet.has(entry.path) ? selectedEntries : [entry];
       event.dataTransfer.effectAllowed = 'copy';
       try {
-        event.dataTransfer.setData(
-          DRAG_MIME,
-          serializeDrag({ side, sessionId, entries: dragged }),
-        );
-        event.dataTransfer.setData(
-          'text/plain',
-          dragged.map((item) => item.path).join('\n'),
-        );
+        event.dataTransfer.setData(DRAG_MIME, serializeDrag({ side, sessionId, entries: dragged }));
+        event.dataTransfer.setData('text/plain', dragged.map((item) => item.path).join('\n'));
       } catch {
         // Some platforms refuse custom MIME types mid-drag; the text/plain
         // fallback above is still useful, and the drop simply will not apply.
@@ -528,25 +517,36 @@ export function FilePane({
     0,
   );
 
-  const columns: { key: SortKey; label: string; className: string }[] = [
-    { key: 'name', label: t('file.columnName'), className: 'flex-1 min-w-0 text-left' },
-    { key: 'size', label: t('file.columnSize'), className: 'w-20 shrink-0 text-right' },
-    { key: 'modified', label: t('file.columnModified'), className: 'w-36 shrink-0 text-right' },
+  /**
+   * Column widths mirror `FileRow` exactly — the header is not a separate
+   * layout, it is the same grid with the same gutters.
+   */
+  const columns: { key: SortKey; label: string; align: 'start' | 'end' }[] = [
+    { key: 'name', label: t('file.columnName'), align: 'start' },
+    { key: 'size', label: t('file.columnSize'), align: 'end' },
+    { key: 'modified', label: t('file.columnModified'), align: 'end' },
     ...(isRemote
       ? [
           {
             key: 'permissions' as SortKey,
             label: t('file.columnPermissions'),
-            className: 'w-24 shrink-0 text-left',
+            align: 'end' as const,
           },
         ]
       : []),
   ];
+  const columnWidth: Record<SortKey, string> = {
+    name: 'min-w-0 flex-1',
+    size: 'w-20 shrink-0',
+    modified: 'w-36 shrink-0',
+    permissions: 'w-24 shrink-0',
+  };
 
   let body: ReactNode;
   if (!connected) {
     body = (
       <EmptyState
+        className="flex-1"
         icon="server"
         title={t('state.notConnected')}
         description={t('state.notConnectedHint')}
@@ -556,24 +556,27 @@ export function FilePane({
     body = (
       // No `title` override: the localized reason for *this* error is far more
       // useful than a generic "could not be listed".
-      <ErrorState error={query.error} onRetry={() => void query.refetch()} />
+      <ErrorState className="flex-1" error={query.error} onRetry={() => void query.refetch()} />
     );
   } else if (query.isPending) {
     body = (
-      <div className="flex flex-1 items-center justify-center p-8">
+      <div className="flex flex-1 flex-col items-center justify-center gap-2 p-8 text-text-3">
         <Spinner size={16} label={t('common.loading')} />
+        <span className="text-sm">{t('common.loading')}</span>
       </div>
     );
   } else if (entries.length === 0) {
     body =
       filter.trim() === '' ? (
         <EmptyState
+          className="flex-1"
           icon="folder-open"
           title={t('state.emptyFolder')}
           description={t('state.emptyFolderHint')}
         />
       ) : (
         <EmptyState
+          className="flex-1"
           icon="search"
           title={t('state.noResults')}
           description={t('state.noResultsHint', { query: filter })}
@@ -584,7 +587,7 @@ export function FilePane({
       <div
         ref={scrollRef}
         role="rowgroup"
-        className="relative min-h-0 flex-1 overflow-y-auto overflow-x-hidden"
+        className="relative min-h-0 flex-1 overflow-y-auto overflow-x-hidden bg-surface"
       >
         <div style={{ height: virtualizer.getTotalSize() }} className="relative">
           {virtualizer.getVirtualItems().map((virtualRow) => {
@@ -629,25 +632,35 @@ export function FilePane({
     <section
       aria-label={t(isRemote ? 'file.remote' : 'file.local')}
       className={cn(
-        'flex min-h-0 min-w-0 flex-1 flex-col bg-surface',
-        focused && 'ring-1 ring-inset ring-accent',
+        // A pane is an object on the app ground, not a region between
+        // hairlines: `.panel` gives it the surface, the 10px radius and the lit
+        // top edge. The focused pane lifts one elevation step and tints its
+        // border, which is quieter than the old full accent ring but reads
+        // immediately when your eyes are already on it.
+        'panel relative flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden transition-base',
+        focused ? 'border-accent-line shadow-e2' : 'border-border',
       )}
       onMouseDownCapture={onFocus}
     >
-      <div className="flex h-8 shrink-0 items-center gap-2 border-b border-border bg-surface-2 px-2">
-        <Icon name={isRemote ? 'server' : 'drive'} className="text-text-3" />
-        <span className="text-xs font-semibold uppercase tracking-wide text-text-2">
+      <div className="flex h-toolbar shrink-0 items-center gap-2 border-b border-border bg-surface-2 px-2.5">
+        <span
+          className={cn(
+            'flex h-6 w-6 items-center justify-center rounded-sm transition-quick',
+            focused ? 'bg-accent-weak text-accent' : 'text-text-3',
+          )}
+        >
+          <Icon name={isRemote ? 'server' : 'drive'} size={16} />
+        </span>
+        <span className="text-2xs font-semibold uppercase tracking-wider text-text-2">
           {t(isRemote ? 'file.remote' : 'file.local')}
         </span>
-        {isRemote && !connected ? (
-          <Badge tone="warn">{t('state.notConnected')}</Badge>
-        ) : null}
+        {isRemote && !connected ? <Badge tone="warn">{t('state.notConnected')}</Badge> : null}
         <div className="flex-1" />
         <Checkbox
           checked={showHiddenFiles}
           onCheckedChange={(checked) => setSetting({ showHiddenFiles: checked })}
           label={t('file.showHidden')}
-          className="text-xs"
+          className="text-xs text-text-2"
         />
       </div>
 
@@ -719,22 +732,25 @@ export function FilePane({
           aria-label={t(isRemote ? 'file.remote' : 'file.local')}
           aria-rowcount={entries.length}
           aria-multiselectable
-          aria-activedescendant={
-            activeEntry ? `${gridId}-row-${cursor}` : undefined
-          }
+          aria-activedescendant={activeEntry ? `${gridId}-row-${cursor}` : undefined}
           onKeyDown={handleKeyDown}
           onFocus={onFocus}
           onDragOver={handleDragOver}
           onDragLeave={() => setDropActive(false)}
           onDrop={(event) => acceptDrop(event, path)}
           className={cn(
-            'flex min-h-0 flex-1 flex-col',
-            dropActive && 'outline-dashed outline-2 -outline-offset-2 outline-accent',
+            'flex min-h-0 flex-1 flex-col outline-none',
+            dropActive && 'ring-2 ring-inset ring-accent',
           )}
         >
+          {/*
+            Column headers are chrome, not content: 24px, uppercase micro-caps,
+            the quietest text colour in the pane. Widths are shared with
+            `FileRow` so header and body stay locked together.
+          */}
           <div
             role="row"
-            className="row shrink-0 gap-2 border-b border-border bg-surface px-2 text-xs text-text-3"
+            className="flex h-6 shrink-0 items-center gap-3 border-b border-border bg-surface pl-2 pr-3"
           >
             {columns.map((column) => (
               <button
@@ -751,16 +767,21 @@ export function FilePane({
                 onClick={() => onSortChange(nextSort(sort, column.key))}
                 title={t('file.sortBy', { column: column.label })}
                 className={cn(
-                  'flex h-full items-center gap-1 hover:text-text-2',
-                  column.className,
-                  column.key === 'size' || column.key === 'modified'
-                    ? 'justify-end'
-                    : 'justify-start',
+                  'flex h-full items-center gap-1 text-2xs uppercase tracking-wider transition-quick',
+                  columnWidth[column.key],
+                  column.align === 'end' ? 'justify-end' : 'justify-start',
+                  // The name label sits over the row's icon gutter, so it is
+                  // indented by exactly that gutter plus its gap.
+                  column.key === 'name' && 'pl-6',
+                  sort.key === column.key ? 'text-text-2' : 'text-text-3 hover:text-text-2',
                 )}
               >
                 <span className="truncate">{column.label}</span>
                 {sort.key === column.key ? (
-                  <Icon name={sort.direction === 'asc' ? 'chevron-up' : 'chevron-down'} />
+                  <Icon
+                    name={sort.direction === 'asc' ? 'chevron-up' : 'chevron-down'}
+                    className="text-accent"
+                  />
                 ) : null}
               </button>
             ))}
@@ -770,19 +791,25 @@ export function FilePane({
         </div>
       </FileContextMenu>
 
-      <footer className="flex h-6 shrink-0 items-center gap-3 border-t border-border bg-surface-2 px-2 text-xs text-text-3">
+      <footer className="flex h-statusbar shrink-0 items-center gap-3 border-t border-border bg-surface-2 px-2.5 text-xs text-text-3">
         <span className="tnum">
           {t('file.itemCount', { files: counts.files, folders: counts.folders })}
         </span>
         {selectedEntries.length > 0 ? (
-          <span className="tnum text-text-2">
+          <span className="tnum rounded-sm bg-accent-weak px-1.5 text-text-2">
             {t('file.selectionSize', {
               count: selectedEntries.length,
               size: formatBytes(selectionBytes),
             })}
           </span>
         ) : null}
-        {dropActive ? <span className="text-accent">{t('file.dropHere')}</span> : null}
+        <div className="flex-1" />
+        {dropActive ? (
+          <span className="flex items-center gap-1 font-medium text-accent">
+            <Icon name={isRemote ? 'upload' : 'download'} />
+            {t('file.dropHere')}
+          </span>
+        ) : null}
       </footer>
 
       <AlertDialog
@@ -801,9 +828,7 @@ export function FilePane({
                     names: deleteNames,
                   })}
             </p>
-            {hasFolder ? (
-              <p className="mt-2 text-danger">{t('delete.recursiveWarning')}</p>
-            ) : null}
+            {hasFolder ? <p className="mt-2 text-danger">{t('delete.recursiveWarning')}</p> : null}
           </>
         }
         confirmLabel={

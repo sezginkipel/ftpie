@@ -29,7 +29,7 @@ import { useT } from '../lib/i18n';
 import { call } from '../lib/ipc';
 import type { DiffLine, DiffResult, OpenedFile } from '../lib/types';
 import { useEditorStore } from '../store/editorStore';
-import { Badge, Button, Dialog, Icon, InlineError, Spinner, useToast } from './ui';
+import { Button, Dialog, Icon, InlineError, Spinner, useToast } from './ui';
 
 // ── Pure decision handling (tested) ─────────────────────────────────────────
 
@@ -210,19 +210,20 @@ export function SaveConflictDialog({ tabId, remoteHash, onClose }: SaveConflictD
       description={t('saveConflict.body', { name: tab.fileName })}
       headerExtra={
         remoteHash ? (
-          <Badge tone="warn" mono>
+          <span className="flex-none select-all rounded-sm bg-warn-weak px-1.5 py-1 font-mono text-xs tnum text-warn">
             {remoteHash.slice(0, 12)}
-          </Badge>
+          </span>
         ) : null
       }
       footer={
         <div className="flex w-full items-center gap-2">
-          <div className="min-w-0 flex-1">
-            {error ? <InlineError error={error} /> : null}
-          </div>
-          <Button onClick={() => void decide('cancel')}>{t('common.cancel')}</Button>
+          <div className="min-w-0 flex-1">{error ? <InlineError error={error} /> : null}</div>
+          <Button className="press" onClick={() => void decide('cancel')}>
+            {t('common.cancel')}
+          </Button>
           <Button
             variant="danger"
+            className="press"
             loading={busy === 'reload'}
             icon={<Icon name="download" />}
             onClick={() => void decide('reload')}
@@ -231,6 +232,7 @@ export function SaveConflictDialog({ tabId, remoteHash, onClose }: SaveConflictD
           </Button>
           <Button
             variant="danger"
+            className="press"
             loading={busy === 'overwrite'}
             icon={<Icon name="upload" />}
             onClick={() => void decide('overwrite')}
@@ -240,12 +242,17 @@ export function SaveConflictDialog({ tabId, remoteHash, onClose }: SaveConflictD
         </div>
       }
     >
-      <div className="flex flex-col gap-2">
-        <p className="text-sm text-text-2">{t('saveConflict.reloadWarning')}</p>
+      <div className="flex flex-col gap-3">
+        {/* What Reload costs, stated before either destructive button is reached. */}
+        <p className="flex items-start gap-2 rounded border border-border bg-warn-weak px-2.5 py-2 text-sm text-text">
+          <Icon name="alert-triangle" className="mt-px flex-none text-warn" />
+          {t('saveConflict.reloadWarning')}
+        </p>
 
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <Button
             size="sm"
+            className="press"
             icon={<Icon name="list" />}
             loading={loadingDiff}
             onClick={() => void decide('diff')}
@@ -253,7 +260,7 @@ export function SaveConflictDialog({ tabId, remoteHash, onClose }: SaveConflictD
             {t('saveConflict.showDiff')}
           </Button>
           {summary ? (
-            <span className="text-sm tnum text-text-2">
+            <span className="rounded-sm bg-surface-2 px-2 py-1 text-xs tnum text-text-2">
               {t('saveConflict.diffSummary', {
                 insertions: summary.insertions,
                 deletions: summary.deletions,
@@ -261,66 +268,99 @@ export function SaveConflictDialog({ tabId, remoteHash, onClose }: SaveConflictD
             </span>
           ) : null}
           {remote ? (
-            <span className="text-sm tnum text-text-3">
+            <span className="text-xs tnum text-text-3">
               {t('editor.bytesOnServer', { size: formatBytes(remote.size) })}
             </span>
           ) : null}
         </div>
 
         {loadingDiff ? (
-          <p className="flex items-center gap-1.5 text-sm text-text-3">
+          <p className="flex items-center gap-2 text-sm text-text-3">
             <Spinner /> {t('saveConflict.loadingRemote')}
           </p>
         ) : null}
 
         {remote?.isBinary ? (
-          <p role="note" className="text-sm text-warn">
+          <p
+            role="note"
+            className="rounded border border-border bg-warn-weak px-2.5 py-2 text-sm text-text"
+          >
             {t('editor.binaryBody')}
           </p>
         ) : null}
 
         {summary?.identical ? (
-          <p role="note" className="text-sm text-ok">
+          <p
+            role="note"
+            className="flex items-center gap-2 rounded border border-border bg-ok-weak px-2.5 py-2 text-sm text-text"
+          >
+            <Icon name="check" className="flex-none text-ok" />
             {t('saveConflict.identical')}
           </p>
         ) : null}
 
+        {/*
+         * A real diff view: fixed line-number gutters on their own tinted
+         * column, and each changed line tinted across its whole width so the
+         * shape of the change is visible without reading the +/- markers.
+         */}
         {summary && !summary.identical ? (
-          <div className="max-h-[46vh] overflow-auto rounded border border-border bg-surface-2">
-            <table className="w-full border-collapse font-mono text-xs">
-              <caption className="sr-only">
-                {t('saveConflict.diffServer')} / {t('saveConflict.diffMine')}
-              </caption>
-              <tbody>
-                {summary.lines.map((line, index) => (
-                  <tr
-                    key={`${line.op}-${index}`}
-                    className={
-                      line.op === 'insert'
-                        ? 'text-ok'
-                        : line.op === 'delete'
-                          ? 'text-danger'
-                          : 'text-text-2'
-                    }
-                  >
-                    <td className="w-10 select-none px-1 text-right tnum text-text-3">
-                      {line.oldLine ?? ''}
-                    </td>
-                    <td className="w-10 select-none px-1 text-right tnum text-text-3">
-                      {line.newLine ?? ''}
-                    </td>
-                    <td className="w-4 select-none text-center text-text-3">
-                      {line.op === 'insert' ? '+' : line.op === 'delete' ? '-' : ' '}
-                    </td>
-                    <td className="select-text whitespace-pre-wrap break-all px-1">
-                      {line.text}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+          <div className="overflow-hidden rounded-lg border border-border bg-surface shadow-e1">
+            <div className="flex items-center gap-2 border-b border-border bg-surface-2 px-2.5 py-1 text-2xs uppercase tracking-wider text-text-3">
+              <span className="text-danger">{t('saveConflict.diffServer')}</span>
+              <Icon name="arrow-right" className="text-text-3" />
+              <span className="text-ok">{t('saveConflict.diffMine')}</span>
+            </div>
+            <div className="max-h-[46vh] overflow-auto">
+              <table className="w-full border-collapse font-mono text-xs leading-relaxed">
+                <caption className="sr-only">
+                  {t('saveConflict.diffServer')} / {t('saveConflict.diffMine')}
+                </caption>
+                <tbody>
+                  {summary.lines.map((line, index) => (
+                    <tr
+                      key={`${line.op}-${index}`}
+                      className={
+                        line.op === 'insert'
+                          ? 'bg-ok-weak'
+                          : line.op === 'delete'
+                            ? 'bg-danger-weak'
+                            : undefined
+                      }
+                    >
+                      <td className="w-11 select-none border-r border-border bg-surface-2 px-1.5 text-right tnum text-text-3">
+                        {line.oldLine ?? ''}
+                      </td>
+                      <td className="w-11 select-none border-r border-border bg-surface-2 px-1.5 text-right tnum text-text-3">
+                        {line.newLine ?? ''}
+                      </td>
+                      <td
+                        className={
+                          line.op === 'insert'
+                            ? 'w-5 select-none text-center font-semibold text-ok'
+                            : line.op === 'delete'
+                              ? 'w-5 select-none text-center font-semibold text-danger'
+                              : 'w-5 select-none text-center text-text-3'
+                        }
+                      >
+                        {line.op === 'insert' ? '+' : line.op === 'delete' ? '-' : ' '}
+                      </td>
+                      <td
+                        className={
+                          line.op === 'equal'
+                            ? 'select-text whitespace-pre-wrap break-all px-2 text-text-2'
+                            : 'select-text whitespace-pre-wrap break-all px-2 text-text'
+                        }
+                      >
+                        {line.text}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
             {summary.truncated > 0 ? (
-              <p className="border-t border-border px-2 py-1 text-xs text-text-3">
+              <p className="border-t border-border bg-surface-2 px-2.5 py-1 text-xs tnum text-text-3">
                 {t('saveConflict.diffTruncated', { count: DIFF_ROW_LIMIT })}
               </p>
             ) : null}

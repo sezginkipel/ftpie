@@ -30,7 +30,6 @@ import type { DeployOutcome, DeployRecord, RollbackArgs } from '../lib/types';
 import { useSettingsStore } from '../store/settingsStore';
 import {
   AlertDialog,
-  Badge,
   Button,
   Checkbox,
   EmptyState,
@@ -116,26 +115,19 @@ export function DeployHistoryPanel({
     } finally {
       setRollingBack(false);
     }
-  }, [
-    excludePatterns,
-    force,
-    fullTree,
-    load,
-    repoPath,
-    sessionId,
-    showError,
-    t,
-    target,
-    toast,
-  ]);
+  }, [excludePatterns, force, fullTree, load, repoPath, sessionId, showError, t, target, toast]);
 
   return (
     <div className={cn('flex min-h-0 flex-col', className)}>
-      <div className="flex h-8 flex-none items-center gap-2 border-b border-border px-2">
-        <h3 className="text-sm font-semibold text-text">{t('history.title')}</h3>
+      <div className="flex h-toolbar flex-none items-center gap-2 border-b border-border bg-surface-2 px-2">
+        <Icon name="clock" className="flex-none text-text-3" />
+        <h3 className="text-sm font-semibold tracking-tight text-text">{t('history.title')}</h3>
+        {records ? <span className="text-xs tnum text-text-3">{records.length}</span> : null}
         <span className="flex-1" />
         <Button
           size="sm"
+          variant="ghost"
+          className="press"
           icon={<Icon name="refresh" />}
           loading={loading}
           onClick={() => void load()}
@@ -160,37 +152,64 @@ export function DeployHistoryPanel({
       ) : (
         <div className="min-h-0 flex-1 overflow-auto">
           <table className="w-full border-collapse text-base">
-            <thead>
-              <tr className="text-2xs uppercase tracking-wide text-text-3">
-                <th scope="col" className="px-2 py-1 text-left font-normal">
+            <thead className="sticky top-0 z-10 bg-surface-2">
+              <tr className="text-2xs uppercase tracking-wider text-text-3">
+                <th
+                  scope="col"
+                  className="border-b border-border px-2 py-1.5 text-left font-normal"
+                >
                   {t('history.columnWhen')}
                 </th>
-                <th scope="col" className="px-2 py-1 text-left font-normal">
+                <th
+                  scope="col"
+                  className="border-b border-border px-2 py-1.5 text-left font-normal"
+                >
                   {t('history.columnTarget')}
                 </th>
-                <th scope="col" className="px-2 py-1 text-left font-normal">
+                <th
+                  scope="col"
+                  className="border-b border-border px-2 py-1.5 text-left font-normal"
+                >
                   {t('history.columnBranch')}
                 </th>
-                <th scope="col" className="px-2 py-1 text-left font-normal">
+                <th
+                  scope="col"
+                  className="border-b border-border px-2 py-1.5 text-left font-normal"
+                >
                   {t('history.columnCommit')}
                 </th>
-                <th scope="col" className="px-2 py-1 text-right font-normal">
+                <th
+                  scope="col"
+                  className="border-b border-border px-2 py-1.5 text-right font-normal"
+                >
                   {t('history.columnFiles')}
                 </th>
-                <th scope="col" className="px-2 py-1 text-right font-normal">
+                <th
+                  scope="col"
+                  className="border-b border-border px-2 py-1.5 text-right font-normal"
+                >
                   {t('history.columnDuration')}
                 </th>
-                <th scope="col" className="px-2 py-1 text-left font-normal">
+                <th
+                  scope="col"
+                  className="border-b border-border px-2 py-1.5 text-left font-normal"
+                >
                   {t('history.columnOutcome')}
                 </th>
-                <th scope="col" className="px-2 py-1 text-right font-normal">
+                <th
+                  scope="col"
+                  className="border-b border-border px-2 py-1.5 text-right font-normal"
+                >
                   {t('transfer.actions')}
                 </th>
               </tr>
             </thead>
             <tbody>
               {records.map((record) => (
-                <tr key={record.id} className="h-row border-t border-border/60">
+                <tr
+                  key={record.id}
+                  className="h-row border-t border-border transition-quick hover:bg-surface-2"
+                >
                   <td className="whitespace-nowrap px-2 tnum text-text-2">
                     {formatDate(record.timestamp, locale, dateFormat)}
                   </td>
@@ -207,9 +226,7 @@ export function DeployHistoryPanel({
                     {record.commitSha.slice(0, 8)}
                   </td>
                   <td className="whitespace-nowrap px-2 text-right tnum text-text-2">
-                    <Tooltip
-                      content={t('deploy.planBytes', { size: formatBytes(record.bytes) })}
-                    >
+                    <Tooltip content={t('deploy.planBytes', { size: formatBytes(record.bytes) })}>
                       <span>
                         {t('history.uploadedDeleted', {
                           uploaded: record.filesUploaded.length,
@@ -223,11 +240,14 @@ export function DeployHistoryPanel({
                   </td>
                   <td className="px-2">
                     {record.success ? (
-                      <Badge tone="ok">{t('history.outcomeSuccess')}</Badge>
+                      <span className="inline-flex flex-none items-center rounded-sm bg-ok-weak px-1.5 py-px text-2xs uppercase tracking-wider text-ok">
+                        {t('history.outcomeSuccess')}
+                      </span>
                     ) : (
                       <Tooltip content={record.error ?? t('history.outcomeFailure')}>
-                        <span>
-                          <Badge tone="danger">{t('history.outcomeFailure')}</Badge>
+                        <span className="inline-flex flex-none items-center gap-1 rounded-sm bg-danger-weak px-1.5 py-px text-2xs uppercase tracking-wider text-danger">
+                          <Icon name="alert-circle" />
+                          {t('history.outcomeFailure')}
                         </span>
                       </Tooltip>
                     )}
@@ -235,6 +255,7 @@ export function DeployHistoryPanel({
                   <td className="px-2 text-right">
                     <Button
                       size="sm"
+                      className="press"
                       icon={<Icon name="arrow-left" />}
                       disabled={!sessionId || record.commitSha === ''}
                       onClick={() => {
@@ -269,10 +290,10 @@ export function DeployHistoryPanel({
         onConfirm={() => void rollback()}
       >
         <div className="flex flex-col gap-2">
-          {/* The limits, stated plainly and never softened. */}
-          <p className="select-text rounded border border-border bg-surface-2 p-2 text-sm text-text-2">
-            {t('history.rollbackCaveats')}
-          </p>
+          <div className="flex items-start gap-2.5 rounded border border-border bg-warn-weak p-2.5">
+            <Icon name="alert-triangle" size={16} className="mt-px flex-none text-warn" />
+            <p className="min-w-0 select-text text-sm text-text">{t('history.rollbackCaveats')}</p>
+          </div>
           <Checkbox
             checked={fullTree}
             onCheckedChange={setFullTree}

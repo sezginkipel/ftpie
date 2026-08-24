@@ -12,6 +12,11 @@
  * 2. **Editing is no longer delete-then-create.** That lost the bookmark
  *    outright whenever the create half failed. `update_bookmark` updates in
  *    place, and it does not accept a ciphertext blob from the frontend.
+ *
+ * The `Bookmark` objects this store holds are the backend's `BookmarkView`:
+ * there is no `encryptedPassword` on them any more, only the derived
+ * `hasPassword` flag. Nothing here can read, copy or forward a credential,
+ * because nothing here ever receives one.
  */
 import { create } from 'zustand';
 
@@ -145,8 +150,8 @@ export const useBookmarkStore = create<BookmarkState>((set, get) => ({
     if (!source) {
       throw { code: 'not_found', path: id, message: `bookmark ${id} not found` };
     }
-    // No password: the plaintext is not available to us, and copying the blob
-    // is exactly what the frontend is no longer allowed to do.
+    // No password: the plaintext is not available to us, and the ciphertext is
+    // not something the frontend is given in the first place.
     return get().create({
       name,
       host: source.host,

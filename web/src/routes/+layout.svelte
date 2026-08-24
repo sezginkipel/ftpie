@@ -5,7 +5,7 @@
   let { children } = $props();
 
   const links = [
-    { href: '#connects', label: 'Connections' },
+    { href: '#connects', label: 'Protocols' },
     { href: '#checks', label: 'Security' },
     { href: '#does', label: 'Features' },
     { href: '#wont', label: 'Limits' },
@@ -44,7 +44,7 @@
   <div class="wrap foot-in">
     <div>
       <p class="ft-name">ftpie</p>
-      <p class="ft-sub">A file transfer client for people who deploy things.</p>
+      <p class="ft-sub">File transfers and git deploys, for people who ship websites and apps.</p>
     </div>
     <div class="ft-meta">
       <span class="mono">v{VERSION}</span>

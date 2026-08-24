@@ -45,13 +45,13 @@ import { useSettingsStore } from '../store/settingsStore';
 import { useTransferStore } from '../store/transferStore';
 import { useUiStore } from '../store/uiStore';
 import {
-  Badge,
   Button,
+  EmptyState,
   ErrorState,
   Icon,
   IconButton,
   NumberInput,
-  ProgressBar,
+  Spinner,
   Tooltip,
   useToast,
   type BadgeTone,
@@ -145,8 +145,7 @@ export function deriveRow(item: TransferItem): TransferRowView {
     localPath: item.localPath,
     direction: item.direction,
     status: item.status,
-    ratio:
-      item.status === 'done' ? 1 : progressRatio(item.bytesDone, item.bytesTotal),
+    ratio: item.status === 'done' ? 1 : progressRatio(item.bytesDone, item.bytesTotal),
     percent: item.status === 'done' ? '100%' : formatPercent(item.bytesDone, item.bytesTotal),
     transferred:
       item.bytesTotal > 0
@@ -249,16 +248,11 @@ export function totalsFor(items: TransferItem[]): QueueTotals {
 }
 
 function isFinished(status: TransferStatus): boolean {
-  return (
-    status === 'done' ||
-    status === 'error' ||
-    status === 'cancelled' ||
-    status === 'skipped'
-  );
+  return status === 'done' || status === 'error' || status === 'cancelled' || status === 'skipped';
 }
 
-const GROUP_ROW_H = 22;
-const ITEM_ROW_H = 28;
+const GROUP_ROW_H = 26;
+const ITEM_ROW_H = 34;
 
 function statusLabel(t: TFunction, status: TransferStatus): string {
   switch (status) {
@@ -376,78 +370,112 @@ export function TransferQueue({ className }: TransferQueueProps) {
     return t('transfer.summaryIdle', { done: aggregates.finished });
   }, [aggregates, list.length, t]);
 
+  const percentText =
+    aggregates.progress === null ? DASH : `${Math.round(aggregates.progress * 100)}%`;
+  const live = aggregates.active + aggregates.queued > 0;
+
   return (
     <section
-      className={cn('flex flex-none flex-col border-t border-border bg-surface', className)}
+      className={cn('flex flex-none flex-col border-t border-border bg-bg', className)}
       aria-label={t('transfer.title')}
     >
-      {/* ── Header: always one 36px line, collapsed or not ── */}
-      <div className="flex h-toolbar flex-none items-center gap-2 px-2">
+      {/*
+       * Header. Chrome, not content: one surface step above the rows with a
+       * hairline underneath. The controls are deliberately unequal — pausing the
+       * queue carries the weight, clearing finished rows is quiet.
+       */}
+      <div className="flex h-toolbar flex-none items-center gap-2.5 bg-surface-2 px-2">
         <IconButton
           label={collapsed ? t('transfer.expand') : t('transfer.collapse')}
           icon={<Icon name={collapsed ? 'chevron-up' : 'chevron-down'} />}
           onClick={() => setCollapsed(!collapsed)}
           aria-expanded={!collapsed}
+          className="press"
         />
-        <span className="flex-none text-sm font-semibold text-text">
-          {t('transfer.title')}
-        </span>
 
-        <div className="flex min-w-0 flex-1 items-center gap-2">
-          {aggregates.active + aggregates.queued > 0 ? (
-            <ProgressBar
-              value={aggregates.progress}
-              label={t('transfer.overallProgress')}
-              tone={queuePaused ? 'warn' : 'info'}
-              height={4}
-              className="max-w-[240px]"
-            />
+        <div className="flex flex-none items-baseline gap-1.5">
+          <span className="text-sm font-semibold tracking-tight text-text">
+            {t('transfer.title')}
+          </span>
+          {list.length > 0 ? <span className="text-xs tnum text-text-3">{list.length}</span> : null}
+        </div>
+
+        <div className="flex min-w-0 flex-1 items-center gap-2.5">
+          {live ? (
+            <span className="flex w-[200px] flex-none items-center gap-2">
+              <TransferBar
+                ratio={aggregates.progress}
+                label={t('transfer.queueProgress')}
+                tone={queuePaused ? 'warn' : 'info'}
+                sheen={!queuePaused && aggregates.active > 0}
+                height="md"
+              />
+              <span className="w-9 flex-none text-right text-xs tnum text-text-2">
+                {percentText}
+              </span>
+            </span>
           ) : null}
           <span className="truncate text-sm tnum text-text-2">{summary}</span>
           {queuePaused ? (
-            <Badge tone="warn">{t('transfer.queuePaused')}</Badge>
+            <span className="flex-none rounded-sm bg-warn-weak px-1.5 py-px text-2xs uppercase tracking-wider text-warn">
+              {t('transfer.queuePaused')}
+            </span>
           ) : null}
         </div>
 
-        <label className="flex flex-none items-center gap-1.5 text-sm text-text-2">
-          <span className="hidden sm:inline">{t('transfer.concurrency')}</span>
-          <Tooltip content={t('transfer.concurrencySessionsNote')}>
-            <NumberInput
-              value={maxConcurrent}
-              onValueChange={(value) =>
-                setSetting({ maxConcurrentTransfers: value ?? maxConcurrent })
-              }
-              min={1}
-              max={16}
-              className="w-14"
-              aria-label={t('transfer.concurrency')}
-            />
-          </Tooltip>
-        </label>
+        <div
+          className="flex flex-none items-center gap-2"
+          role="group"
+          aria-label={t('transfer.controls')}
+        >
+          <label className="flex flex-none items-center gap-1.5 text-xs text-text-3">
+            <span className="hidden uppercase tracking-wider md:inline">
+              {t('transfer.concurrency')}
+            </span>
+            <Tooltip content={t('transfer.concurrencySessionsNote')}>
+              <NumberInput
+                value={maxConcurrent}
+                onValueChange={(value) =>
+                  setSetting({ maxConcurrentTransfers: value ?? maxConcurrent })
+                }
+                min={1}
+                max={16}
+                className="w-14"
+                aria-label={t('transfer.concurrency')}
+              />
+            </Tooltip>
+          </label>
 
-        <Button
-          size="sm"
-          icon={<Icon name={queuePaused ? 'play' : 'pause'} />}
-          onClick={() =>
-            void runCommand(() => useTransferStore.getState().setQueuePaused(!queuePaused))
-          }
-        >
-          {queuePaused ? t('transfer.resumeQueue') : t('transfer.pauseQueue')}
-        </Button>
-        <Button
-          size="sm"
-          icon={<Icon name="trash" />}
-          disabled={aggregates.finished === 0}
-          onClick={() => void runCommand(() => useTransferStore.getState().clearFinished())}
-        >
-          {t('transfer.clearFinished')}
-        </Button>
+          <span aria-hidden="true" className="h-5 w-px flex-none bg-border" />
+
+          <Button
+            size="sm"
+            variant={queuePaused ? 'primary' : 'secondary'}
+            className="press"
+            icon={<Icon name={queuePaused ? 'play' : 'pause'} />}
+            onClick={() =>
+              void runCommand(() => useTransferStore.getState().setQueuePaused(!queuePaused))
+            }
+          >
+            {queuePaused ? t('transfer.resumeQueue') : t('transfer.pauseQueue')}
+          </Button>
+          <Button
+            size="sm"
+            variant="ghost"
+            className="press"
+            icon={<Icon name="trash" />}
+            disabled={aggregates.finished === 0}
+            onClick={() => void runCommand(() => useTransferStore.getState().clearFinished())}
+          >
+            {t('transfer.clearFinished')}
+          </Button>
+        </div>
       </div>
 
       {/* ── Body ── */}
       {collapsed ? null : (
         <div
-          className="flex flex-none flex-col border-t border-border"
+          className="flex flex-none flex-col border-t border-border bg-surface"
           style={{ height }}
         >
           {hydrateError ? (
@@ -463,27 +491,32 @@ export function TransferQueue({ className }: TransferQueueProps) {
               }}
             />
           ) : list.length === 0 ? (
-            <p className="p-4 text-center text-sm text-text-3">
-              {hydrated ? t('transfer.empty') : t('common.loading')}
-            </p>
+            hydrated ? (
+              <EmptyState
+                icon="upload"
+                title={t('transfer.empty')}
+                description={t('transfer.emptyHint')}
+                compact
+              />
+            ) : (
+              <p className="flex items-center justify-center gap-2 p-4 text-sm text-text-3">
+                <Spinner /> {t('common.loading')}
+              </p>
+            )
           ) : (
             <>
               <div
                 role="row"
-                className="flex h-5 flex-none items-center gap-2 border-b border-border px-2 text-2xs uppercase tracking-wide text-text-3"
+                className="flex h-6 flex-none items-center gap-2.5 border-b border-border px-2 text-2xs uppercase tracking-wider text-text-3"
               >
-                <span className="w-4 flex-none" aria-hidden="true" />
+                <span className="w-5 flex-none" aria-hidden="true" />
                 <span className="min-w-0 flex-1">{t('transfer.columnName')}</span>
-                <span className="w-28 flex-none">{t('transfer.columnProgress')}</span>
-                <span className="w-32 flex-none text-right">
-                  {t('transfer.columnTransferred')}
-                </span>
+                <span className="w-[132px] flex-none">{t('transfer.columnProgress')}</span>
+                <span className="w-32 flex-none text-right">{t('transfer.columnTransferred')}</span>
                 <span className="w-20 flex-none text-right">{t('transfer.columnSpeed')}</span>
                 <span className="w-16 flex-none text-right">{t('transfer.columnEta')}</span>
-                <span className="w-20 flex-none">{t('transfer.columnStatus')}</span>
-                <span className="w-[76px] flex-none text-right">
-                  {t('transfer.actions')}
-                </span>
+                <span className="w-24 flex-none">{t('transfer.columnStatus')}</span>
+                <span className="w-[84px] flex-none text-right">{t('transfer.actions')}</span>
               </div>
 
               <div
@@ -492,9 +525,7 @@ export function TransferQueue({ className }: TransferQueueProps) {
                 role="rowgroup"
                 aria-label={t('transfer.rows')}
               >
-                <div
-                  style={{ height: virtualizer.getTotalSize(), position: 'relative' }}
-                >
+                <div style={{ height: virtualizer.getTotalSize(), position: 'relative' }}>
                   {virtualizer.getVirtualItems().map((virtualRow) => {
                     const row = rows[virtualRow.index];
                     if (!row) return null;
@@ -511,10 +542,12 @@ export function TransferQueue({ className }: TransferQueueProps) {
                         }}
                       >
                         {row.kind === 'group' ? (
-                          <div className="flex h-full items-center gap-1.5 bg-surface-2 px-2 text-xs text-text-2">
-                            <Icon name="server" />
-                            <span className="truncate font-mono">{row.label}</span>
-                            <span className="tnum text-text-3">
+                          <div className="flex h-full items-center gap-2 bg-surface-2 px-2">
+                            <Icon name="server" className="flex-none text-text-3" />
+                            <span className="truncate font-mono text-xs text-text-2">
+                              {row.label}
+                            </span>
+                            <span className="text-2xs tnum uppercase tracking-wider text-text-3">
                               {t('common.items', { count: row.count })}
                             </span>
                           </div>
@@ -522,19 +555,13 @@ export function TransferQueue({ className }: TransferQueueProps) {
                           <TransferRow
                             view={row.view}
                             onCancel={() =>
-                              void runCommand(() =>
-                                useTransferStore.getState().cancel(row.view.id),
-                              )
+                              void runCommand(() => useTransferStore.getState().cancel(row.view.id))
                             }
                             onPause={() =>
-                              void runCommand(() =>
-                                useTransferStore.getState().pause(row.view.id),
-                              )
+                              void runCommand(() => useTransferStore.getState().pause(row.view.id))
                             }
                             onResume={() =>
-                              void runCommand(() =>
-                                useTransferStore.getState().resume(row.view.id),
-                              )
+                              void runCommand(() => useTransferStore.getState().resume(row.view.id))
                             }
                             onRetry={() => void retry(row.view)}
                           />
@@ -552,6 +579,93 @@ export function TransferQueue({ className }: TransferQueueProps) {
   );
 }
 
+// ── Row chrome ──────────────────────────────────────────────────────────────
+
+const TONE_BG: Record<ProgressTone, string> = {
+  accent: 'bg-accent',
+  ok: 'bg-ok',
+  warn: 'bg-warn',
+  danger: 'bg-danger',
+  info: 'bg-info',
+};
+
+/**
+ * The queue's progress bar.
+ *
+ * `ProgressBar` covers the general case, but a transfer row needs one more
+ * thing: while bytes are genuinely moving the bar has to *read* as moving, which
+ * is the `animate-sheen` overlay riding across the filled portion. The ARIA
+ * contract is the primitive's — `aria-valuenow` only when the total is actually
+ * known, `aria-busy` when it is not, never an invented percentage.
+ */
+function TransferBar({
+  ratio,
+  label,
+  tone,
+  sheen,
+  height = 'sm',
+}: {
+  ratio: number | null;
+  label: string;
+  tone: ProgressTone;
+  sheen: boolean;
+  height?: 'sm' | 'md';
+}) {
+  const indeterminate = ratio === null || !Number.isFinite(ratio);
+  const percent = indeterminate ? 0 : Math.round(Math.max(0, Math.min(1, ratio)) * 100);
+
+  return (
+    <div
+      role="progressbar"
+      aria-label={label}
+      aria-valuemin={indeterminate ? undefined : 0}
+      aria-valuemax={indeterminate ? undefined : 100}
+      aria-valuenow={indeterminate ? undefined : percent}
+      aria-valuetext={indeterminate ? undefined : `${percent}%`}
+      aria-busy={indeterminate || undefined}
+      className={cn(
+        'relative min-w-0 flex-1 overflow-hidden rounded-full bg-surface-2',
+        'shadow-[inset_0_0_0_1px_var(--border)]',
+        height === 'md' ? 'h-1.5' : 'h-1',
+      )}
+    >
+      {indeterminate ? (
+        <div className={cn('absolute inset-y-0 w-1/3 animate-indeterminate', TONE_BG[tone])} />
+      ) : (
+        <div
+          className={cn(
+            'relative h-full overflow-hidden rounded-full transition-base',
+            TONE_BG[tone],
+          )}
+          style={{ width: `${percent}%` }}
+        >
+          {sheen ? (
+            <span
+              aria-hidden="true"
+              className="absolute inset-0 animate-sheen bg-gradient-to-r from-transparent via-white/45 to-transparent"
+            />
+          ) : null}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/**
+ * Status as a tinted chip rather than coloured text. The `*-weak` background
+ * means the state is still legible to a colour-blind reader and on a washed-out
+ * display, which a coloured word alone is not.
+ */
+const STATUS_CHIP: Record<TransferStatus, string> = {
+  queued: 'bg-surface-2 text-text-2',
+  active: 'bg-info-weak text-info',
+  paused: 'bg-warn-weak text-warn',
+  done: 'bg-ok-weak text-ok',
+  error: 'bg-danger-weak text-danger',
+  cancelled: 'bg-surface-2 text-text-3',
+  skipped: 'bg-surface-2 text-text-3',
+};
+
 interface TransferRowProps {
   view: TransferRowView;
   onCancel: () => void;
@@ -565,56 +679,98 @@ function TransferRow({ view, onCancel, onPause, onResume, onRetry }: TransferRow
 
   const directionLabel =
     view.direction === 'upload' ? t('transfer.upload') : t('transfer.download');
+  const moving = view.status === 'active';
 
   return (
     <div
       role="row"
-      className="flex h-full items-center gap-2 border-b border-border/60 px-2 text-base"
+      className="group flex h-full items-center gap-2.5 border-b border-border px-2 text-base transition-quick hover:bg-surface-2"
+      // A failed row is marked on its edge as well as in its chip, so it can be
+      // found while scrolling a long queue.
+      style={view.status === 'error' ? { boxShadow: 'inset 2px 0 0 0 var(--danger)' } : undefined}
     >
       <Tooltip content={directionLabel}>
-        <span className="flex w-4 flex-none justify-center text-text-3">
+        <span
+          className={cn(
+            'flex h-5 w-5 flex-none items-center justify-center rounded-sm',
+            moving ? 'bg-info-weak text-info' : 'bg-surface-2 text-text-3',
+          )}
+        >
           <Icon name={view.direction === 'upload' ? 'upload' : 'download'} />
         </span>
       </Tooltip>
 
       <Tooltip content={view.remotePath} mono>
-        <span className="min-w-0 flex-1 truncate text-text">
+        <span className="min-w-0 flex-1 truncate font-medium text-text">
           {truncateMiddle(view.fileName, 60)}
         </span>
       </Tooltip>
 
-      <span className="flex w-28 flex-none items-center gap-1.5">
-        <ProgressBar
-          value={view.ratio}
+      <span className="flex w-[132px] flex-none items-center gap-2">
+        <TransferBar
+          ratio={view.ratio}
           label={view.fileName}
           tone={view.progressTone}
-          height={4}
-          className="flex-1"
+          sheen={moving}
         />
-        <span className="w-8 flex-none text-right text-xs tnum text-text-3">
-          {view.percent}
-        </span>
+        <span className="w-9 flex-none text-right text-xs tnum text-text-3">{view.percent}</span>
       </span>
 
       <span className="w-32 flex-none text-right font-mono text-xs tnum text-text-2">
         {view.transferred}
       </span>
-      <span className="w-20 flex-none text-right font-mono text-xs tnum text-text-2">
+      <span
+        className={cn(
+          'w-20 flex-none text-right font-mono text-xs tnum',
+          moving ? 'text-text' : 'text-text-3',
+        )}
+      >
         {view.speed}
       </span>
-      <span className="w-16 flex-none text-right font-mono text-xs tnum text-text-2">
+      <span
+        className={cn(
+          'w-16 flex-none text-right font-mono text-xs tnum',
+          moving ? 'text-text' : 'text-text-3',
+        )}
+      >
         {view.eta}
       </span>
 
-      <span className="flex w-20 flex-none items-center gap-1">
-        <Badge tone={view.statusTone}>{statusLabel(t, view.status)}</Badge>
+      <span className="flex w-24 flex-none items-center gap-1.5">
+        <span
+          className={cn(
+            'inline-flex h-[18px] flex-none items-center rounded-sm px-1.5 text-2xs uppercase tracking-wider',
+            STATUS_CHIP[view.status],
+          )}
+        >
+          {statusLabel(t, view.status)}
+        </span>
+        {view.error ? (
+          // The failure reason itself, not a generic "failed" — the old queue
+          // dropped it entirely.
+          <Tooltip content={view.error} mono>
+            <span
+              role="note"
+              aria-label={view.error}
+              className="flex flex-none select-text items-center text-danger"
+            >
+              <Icon name="alert-circle" />
+            </span>
+          </Tooltip>
+        ) : null}
       </span>
 
-      <span className="flex w-[76px] flex-none items-center justify-end gap-0.5">
+      {/*
+       * Actions keep a reserved width and lift to full opacity on hover or
+       * focus, so the row never reflows under the pointer and keyboard users
+       * still see what they are on.
+       */}
+      <span className="flex w-[84px] flex-none items-center justify-end gap-0.5 opacity-70 transition-quick focus-within:opacity-100 group-hover:opacity-100">
         {view.retryable ? (
           <IconButton
             label={t('transfer.retry')}
             icon={<Icon name="refresh" />}
+            className="press"
             onClick={onRetry}
           />
         ) : null}
@@ -622,6 +778,7 @@ function TransferRow({ view, onCancel, onPause, onResume, onRetry }: TransferRow
           <IconButton
             label={t('transfer.pause')}
             icon={<Icon name="pause" />}
+            className="press"
             onClick={onPause}
           />
         ) : null}
@@ -629,6 +786,7 @@ function TransferRow({ view, onCancel, onPause, onResume, onRetry }: TransferRow
           <IconButton
             label={t('transfer.resume')}
             icon={<Icon name="play" />}
+            className="press"
             onClick={onResume}
           />
         ) : null}
@@ -637,24 +795,11 @@ function TransferRow({ view, onCancel, onPause, onResume, onRetry }: TransferRow
             label={t('transfer.cancel')}
             icon={<Icon name="x" />}
             variant="ghost"
+            className="press"
             onClick={onCancel}
           />
         ) : null}
-        {view.error ? (
-          // The failure reason itself, not a generic "failed" — the old queue
-          // dropped it entirely.
-          <Tooltip content={view.error} mono>
-            <span
-              role="note"
-              aria-label={view.error}
-              className="flex select-text items-center text-danger"
-            >
-              <Icon name="alert-circle" />
-            </span>
-          </Tooltip>
-        ) : null}
       </span>
-
     </div>
   );
 }

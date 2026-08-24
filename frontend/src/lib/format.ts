@@ -275,7 +275,7 @@ export function parentPath(path: string, isRemote: boolean): string | null {
 /** Join a parent and a child, mirroring `RemoteFile::join_path` for remotes. */
 export function joinPath(parent: string, name: string, isRemote: boolean): string {
   if (isRemote) {
-    if (parent === '' ) return `/${name}`;
+    if (parent === '') return `/${name}`;
     return parent.endsWith('/') ? `${parent}${name}` : `${parent}/${name}`;
   }
   const sep = parent.includes('\\') || /^[A-Za-z]:/.test(parent) ? '\\' : '/';
@@ -290,10 +290,7 @@ export function baseName(path: string): string {
 }
 
 /** Breadcrumb segments with their cumulative paths, for a PathBar. */
-export function pathSegments(
-  path: string,
-  isRemote: boolean,
-): { label: string; path: string }[] {
+export function pathSegments(path: string, isRemote: boolean): { label: string; path: string }[] {
   const out: { label: string; path: string }[] = [];
   let current: string | null = path;
   const guard = 256;

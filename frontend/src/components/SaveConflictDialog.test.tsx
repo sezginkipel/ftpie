@@ -165,9 +165,7 @@ describe('<SaveConflictDialog />', () => {
       closed = true;
     });
 
-    await userEvent.click(
-      screen.getByRole('button', { name: 'Overwrite the server’s version' }),
-    );
+    await userEvent.click(screen.getByRole('button', { name: 'Overwrite the server’s version' }));
 
     expect(await screen.findByText(/does not have permission/)).toBeInTheDocument();
     expect(closed).toBe(false);
@@ -186,9 +184,7 @@ describe('<SaveConflictDialog />', () => {
       closed = true;
     });
 
-    await userEvent.click(
-      screen.getByRole('button', { name: 'Overwrite the server’s version' }),
-    );
+    await userEvent.click(screen.getByRole('button', { name: 'Overwrite the server’s version' }));
     expect(closed).toBe(true);
     expect(useEditorStore.getState().byId('s1:/srv/a.txt')?.dirty).toBe(false);
   });

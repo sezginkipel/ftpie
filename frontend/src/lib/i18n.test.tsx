@@ -1,6 +1,7 @@
+import { render } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 
-import { DEFAULT_LOCALE, errorDetail, errorMessage, translate } from './i18n';
+import { DEFAULT_LOCALE, I18nProvider, errorDetail, errorMessage, translate } from './i18n';
 import { en } from './locales/en';
 import { tr } from './locales/tr';
 import type { AppError, AppErrorCode, Locale } from './types';
@@ -68,8 +69,7 @@ describe('dictionaries', () => {
   });
 
   it('keeps the same placeholders on both sides of every translation', () => {
-    const placeholders = (text: string) =>
-      [...text.matchAll(/\{(\w+)\}/g)].map((m) => m[1]).sort();
+    const placeholders = (text: string) => [...text.matchAll(/\{(\w+)\}/g)].map((m) => m[1]).sort();
 
     for (const key of Object.keys(en) as (keyof typeof en)[]) {
       expect(placeholders(tr[key]), `mismatched placeholders in "${key}"`).toEqual(
@@ -95,9 +95,7 @@ describe('translate', () => {
   });
 
   it('substitutes every occurrence and coerces numbers', () => {
-    expect(translate('en', 'git.aheadBehind', { ahead: 2, behind: 0 })).toBe(
-      '2 ahead, 0 behind',
-    );
+    expect(translate('en', 'git.aheadBehind', { ahead: 2, behind: 0 })).toBe('2 ahead, 0 behind');
   });
 });
 
@@ -131,10 +129,7 @@ describe('errorMessage', () => {
   });
 
   it('falls back to a generic not-found sentence without a path', () => {
-    const message = errorMessage(
-      { code: 'not_found', path: '', message: 'gone' },
-      t,
-    );
+    const message = errorMessage({ code: 'not_found', path: '', message: 'gone' }, t);
     expect(message).toBe(translate('tr', 'error.not_found.generic'));
   });
 
@@ -165,5 +160,19 @@ describe('errorDetail', () => {
   it('returns null when there is nothing useful to show', () => {
     expect(errorDetail(null)).toBeNull();
     expect(errorDetail(42)).toBeNull();
+  });
+});
+
+describe('<html lang>', () => {
+  /*
+   * `text-transform: uppercase` follows the document language, so a stale
+   * `lang` silently corrupts casing: with lang="tr", the English column header
+   * MODIFIED renders as MODİFİED. Nothing throws and no test of the string
+   * itself would catch it, which is why this asserts on the attribute.
+   */
+  it.each(LOCALES)('tracks the active locale (%s)', (locale) => {
+    document.documentElement.lang = 'zz';
+    render(<I18nProvider locale={locale}>ok</I18nProvider>);
+    expect(document.documentElement.lang).toBe(locale);
   });
 });

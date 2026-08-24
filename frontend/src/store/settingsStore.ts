@@ -120,7 +120,9 @@ export const useSettingsStore = create<SettingsState>()(
 
       reset() {
         set({ ...DEFAULT_SETTINGS });
-        void get().syncToBackend().catch(() => {});
+        void get()
+          .syncToBackend()
+          .catch(() => {});
       },
 
       async syncToBackend() {

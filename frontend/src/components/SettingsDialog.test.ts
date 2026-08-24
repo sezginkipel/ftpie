@@ -2,11 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import { en } from '../lib/locales/en';
 import { DEFAULT_SETTINGS, type Settings } from '../store/settingsStore';
-import {
-  MIN_MASTER_PASSWORD,
-  validateBaseUrl,
-  validatePasswordChange,
-} from './SettingsDialog';
+import { MIN_MASTER_PASSWORD, validateBaseUrl, validatePasswordChange } from './SettingsDialog';
 
 describe('validateBaseUrl', () => {
   it('accepts https anywhere', () => {

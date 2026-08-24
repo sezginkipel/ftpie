@@ -80,15 +80,40 @@ export class ErrorBoundary extends Component<Props, State> {
     const { error, componentStack, expanded, copied } = this.state;
     if (!error) return this.props.children;
 
+    /*
+     * Calm, not alarming. This is the last thing a user sees when the interface
+     * dies, so it reads as a card with a way forward rather than a red stack
+     * trace: neutral surface, a quiet tinted icon, the reason in a monospace
+     * block, the stack folded away, and two buttons that actually help.
+     */
     const button: React.CSSProperties = {
-      height: 28,
-      padding: '0 12px',
-      borderRadius: 4,
+      height: 30,
+      display: 'inline-flex',
+      alignItems: 'center',
+      gap: 6,
+      padding: '0 14px',
+      borderRadius: 'var(--radius)',
       border: '1px solid var(--border-strong)',
       background: 'var(--surface)',
       color: 'var(--text)',
       font: 'inherit',
       cursor: 'pointer',
+    };
+
+    const codeBlock: React.CSSProperties = {
+      margin: 0,
+      padding: 10,
+      overflow: 'auto',
+      whiteSpace: 'pre-wrap',
+      wordBreak: 'break-word',
+      borderRadius: 'var(--radius)',
+      border: '1px solid var(--border)',
+      background: 'var(--surface-2)',
+      fontFamily: 'var(--font-mono)',
+      fontSize: 11.5,
+      lineHeight: 1.55,
+      // Selectable: even with no clipboard permission there is a way to report.
+      userSelect: 'text',
     };
 
     return (
@@ -99,73 +124,102 @@ export class ErrorBoundary extends Component<Props, State> {
           minHeight: '100%',
           alignItems: 'center',
           justifyContent: 'center',
-          padding: 24,
+          padding: 32,
           background: 'var(--bg)',
           color: 'var(--text)',
           fontFamily: 'var(--font-ui)',
-          fontSize: 13,
+          fontSize: 13.5,
+          lineHeight: 1.45,
         }}
       >
-        <div style={{ maxWidth: 640, width: '100%' }}>
-          <h1 style={{ margin: 0, fontSize: 16, fontWeight: 600 }}>
-            {this.t('boundary.title')}
-          </h1>
-          <p style={{ margin: '8px 0 0', color: 'var(--text-2)' }}>
-            {this.t('boundary.body')}
-          </p>
+        <div
+          style={{
+            maxWidth: 620,
+            width: '100%',
+            padding: 24,
+            borderRadius: 'var(--radius-xl)',
+            border: '1px solid var(--border)',
+            background: 'var(--surface)',
+            boxShadow: 'var(--elev-2)',
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'flex-start', gap: 14 }}>
+            <span
+              aria-hidden="true"
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                width: 34,
+                height: 34,
+                flex: 'none',
+                borderRadius: 999,
+                background: 'var(--warn-weak)',
+                color: 'var(--warn)',
+                fontSize: 18,
+              }}
+            >
+              {/* Inline glyph rather than the Icon component: this must render
+                  even if the module graph is what failed. */}
+              <svg viewBox="0 0 16 16" width="17" height="17" aria-hidden="true">
+                <path
+                  d="M8 2.5 14.5 13.5H1.5L8 2.5ZM8 6.5v3.5m0 1.5h.01"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.6"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              </svg>
+            </span>
+            <div style={{ minWidth: 0 }}>
+              <h1
+                style={{
+                  margin: 0,
+                  fontSize: 19,
+                  lineHeight: '25px',
+                  fontWeight: 600,
+                  letterSpacing: '-0.022em',
+                }}
+              >
+                {this.t('boundary.title')}
+              </h1>
+              <p style={{ margin: '6px 0 0', color: 'var(--text-2)' }}>{this.t('boundary.body')}</p>
+            </div>
+          </div>
 
-          <pre
-            style={{
-              margin: '12px 0 0',
-              padding: 8,
-              overflow: 'auto',
-              maxHeight: 120,
-              whiteSpace: 'pre-wrap',
-              wordBreak: 'break-word',
-              borderRadius: 4,
-              border: '1px solid var(--border)',
-              background: 'var(--surface-2)',
-              color: 'var(--danger)',
-              fontFamily: 'var(--font-mono)',
-              fontSize: 11,
-            }}
-          >
+          <pre style={{ ...codeBlock, marginTop: 18, maxHeight: 120, color: 'var(--danger)' }}>
             {error.name}: {error.message}
           </pre>
 
           {componentStack ? (
-            <div style={{ marginTop: 8 }}>
+            <div style={{ marginTop: 10 }}>
               <button
                 type="button"
                 aria-expanded={expanded}
                 onClick={() => this.setState({ expanded: !expanded })}
                 style={{
                   ...button,
-                  height: 22,
-                  padding: '0 6px',
-                  border: 'none',
+                  height: 24,
+                  padding: '0 8px 0 4px',
+                  border: '1px solid transparent',
                   background: 'transparent',
                   color: 'var(--text-3)',
+                  fontSize: 12.5,
                 }}
               >
-                {expanded ? '▾ ' : '▸ '}
+                <span aria-hidden="true" style={{ width: 14, textAlign: 'center' }}>
+                  {expanded ? '\u25be' : '\u25b8'}
+                </span>
                 {this.t('boundary.componentStack')}
               </button>
               {expanded ? (
                 <pre
                   style={{
-                    margin: '4px 0 0',
-                    padding: 8,
-                    overflow: 'auto',
+                    ...codeBlock,
+                    marginTop: 6,
                     maxHeight: 240,
-                    whiteSpace: 'pre-wrap',
-                    wordBreak: 'break-word',
-                    borderRadius: 4,
-                    border: '1px solid var(--border)',
-                    background: 'var(--surface-2)',
                     color: 'var(--text-2)',
-                    fontFamily: 'var(--font-mono)',
-                    fontSize: 11,
                   }}
                 >
                   {componentStack}
@@ -174,7 +228,7 @@ export class ErrorBoundary extends Component<Props, State> {
             </div>
           ) : null}
 
-          <div style={{ marginTop: 16, display: 'flex', gap: 8 }}>
+          <div style={{ marginTop: 20, display: 'flex', gap: 8 }}>
             <button
               type="button"
               onClick={this.reload}

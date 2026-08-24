@@ -202,9 +202,7 @@ describe('parentPath — UNC paths', () => {
 
   it('walks inside a share and stops at its root', () => {
     expect(parentPath('\\\\server\\share\\dir', false)).toBe('\\\\server\\share');
-    expect(parentPath('\\\\server\\share\\dir\\sub', false)).toBe(
-      '\\\\server\\share\\dir',
-    );
+    expect(parentPath('\\\\server\\share\\dir\\sub', false)).toBe('\\\\server\\share\\dir');
   });
 });
 

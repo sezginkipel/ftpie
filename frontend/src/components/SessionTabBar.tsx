@@ -5,6 +5,12 @@
  * for encrypted sessions and a visible warning for plain FTP. Closing removes
  * the tab first and then tells the backend, so a dead socket cannot leave a
  * stuck tab behind (see `sessionStore.disconnect`).
+ *
+ * The active tab is told apart three ways at once — it steps up to `surface`,
+ * gains a 2px accent underline that lands on the title bar's own hairline, and
+ * its label goes to full-strength text. The close button is always in the DOM
+ * (so nothing reflows) and only becomes visible on hover, on focus, or on the
+ * active tab.
  */
 import { useRef, type KeyboardEvent } from 'react';
 
@@ -28,8 +34,7 @@ export function SessionTabBar() {
   if (order.length === 0) return null;
 
   const onKeyDown = (event: KeyboardEvent<HTMLButtonElement>, index: number) => {
-    const delta =
-      event.key === 'ArrowRight' ? 1 : event.key === 'ArrowLeft' ? -1 : 0;
+    const delta = event.key === 'ArrowRight' ? 1 : event.key === 'ArrowLeft' ? -1 : 0;
     if (delta === 0) return;
     event.preventDefault();
     const next = (index + delta + order.length) % order.length;
@@ -43,7 +48,7 @@ export function SessionTabBar() {
       ref={listRef}
       role="tablist"
       aria-label={t('session.tabs')}
-      className="flex min-w-0 items-stretch overflow-x-auto"
+      className="flex min-w-0 items-stretch gap-1 overflow-x-auto px-1 pt-1"
     >
       {order.map((id, index) => {
         const session = sessions[id];
@@ -56,8 +61,11 @@ export function SessionTabBar() {
           <div
             key={id}
             className={cn(
-              'group flex min-w-0 max-w-[220px] items-center gap-1 border-r border-border px-2',
-              isActive ? 'bg-surface text-text' : 'bg-surface-2 text-text-2',
+              'group relative flex min-w-0 max-w-[240px] items-center gap-1 rounded-t pl-2 pr-1',
+              'transition-quick',
+              isActive
+                ? 'bg-surface text-text shadow-e1'
+                : 'bg-transparent text-text-2 hover:bg-surface-2 hover:text-text',
             )}
           >
             <button
@@ -67,18 +75,28 @@ export function SessionTabBar() {
               tabIndex={isActive ? 0 : -1}
               onClick={() => setActive(id)}
               onKeyDown={(event) => onKeyDown(event, index)}
-              className="flex min-w-0 items-center gap-1.5 py-1 text-left"
+              className="flex min-w-0 flex-1 items-center gap-1.5 py-1 text-left"
             >
+              {/* Protocol and encryption in one glyph: a tinted chip, so state is
+                  never carried by colour alone. */}
               <Tooltip content={secure ? t('session.secure') : t('session.insecure')}>
-                <span className={secure ? 'text-ok' : 'text-danger'}>
+                <span
+                  className={cn(
+                    'flex h-4 w-4 shrink-0 items-center justify-center rounded-sm',
+                    secure ? 'bg-ok-weak text-ok' : 'bg-danger-weak text-danger',
+                  )}
+                >
                   <Icon name={secure ? 'lock' : 'unlock'} />
                 </span>
               </Tooltip>
               <span className="cell-truncate text-sm">
                 {session.username}@{session.host}
               </span>
+              <span className="shrink-0 text-2xs uppercase tracking-wider text-text-3">
+                {session.protocol}
+              </span>
               {!secure ? (
-                <span className="shrink-0 text-2xs uppercase tracking-wide text-danger">
+                <span className="shrink-0 rounded-sm bg-danger-weak px-1 text-2xs font-semibold uppercase tracking-wider text-danger">
                   {t('status.notEncrypted')}
                 </span>
               ) : null}
@@ -91,7 +109,21 @@ export function SessionTabBar() {
               variant="ghost"
               loading={isClosing}
               onClick={() => void disconnect(id)}
+              className={cn(
+                'transition-quick',
+                isActive || isClosing
+                  ? 'opacity-100'
+                  : 'opacity-0 focus-visible:opacity-100 group-hover:opacity-100',
+              )}
             />
+
+            {/* The active underline overlaps the header hairline by 1px. */}
+            {isActive ? (
+              <span
+                aria-hidden
+                className="pointer-events-none absolute inset-x-0 -bottom-px h-0.5 rounded-full bg-accent"
+              />
+            ) : null}
           </div>
         );
       })}

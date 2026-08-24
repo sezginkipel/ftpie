@@ -15,6 +15,14 @@ const SIZES: Record<DialogSize, string> = {
   xl: 'max-w-4xl',
 };
 
+/**
+ * The scrim. Blurring it — rather than only darkening it — is what makes the
+ * dialog read as floating above the app instead of pasted onto a screenshot of
+ * it, and it stops a busy file listing competing with the dialog for attention.
+ */
+export const dialogOverlayClass =
+  'fixed inset-0 z-40 animate-overlay-in bg-black/45 backdrop-blur-sm';
+
 export interface DialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -43,6 +51,11 @@ export interface DialogProps {
  * Radix Dialog: focus trap, Escape to close, focus restored on close, and a
  * labelled title and description. Never use `window.confirm`/`prompt` — every
  * prompt in this app is one of these.
+ *
+ * Layout is a fixed three-band rhythm — header, scrolling body, footer — held
+ * inside `max-h-[min(85vh,44rem)]`. The body is the only scroller, so a long
+ * settings page never pushes the footer buttons off a small window, and the
+ * header/footer hairlines give the eye two stable anchors.
  */
 export function Dialog({
   open,
@@ -62,11 +75,12 @@ export function Dialog({
   return (
     <RadixDialog.Root open={open} onOpenChange={onOpenChange}>
       <RadixDialog.Portal>
-        <RadixDialog.Overlay className="fixed inset-0 z-40 animate-overlay-in bg-black/50" />
+        <RadixDialog.Overlay className={dialogOverlayClass} />
         <RadixDialog.Content
           className={cn(
-            'fixed left-1/2 top-1/2 z-50 flex max-h-[85vh] w-[92vw] -translate-x-1/2 -translate-y-1/2',
-            'flex-col rounded border border-border-strong bg-surface shadow-2xl',
+            'raised fixed left-1/2 top-1/2 z-50 flex -translate-x-1/2 -translate-y-1/2',
+            'w-[min(92vw,100%)] flex-col overflow-hidden rounded-xl',
+            'max-h-[min(85vh,44rem)] animate-dialog-in shadow-e3',
             SIZES[size],
             className,
           )}
@@ -74,13 +88,13 @@ export function Dialog({
           onPointerDownOutside={dismissible ? undefined : (e) => e.preventDefault()}
           onInteractOutside={dismissible ? undefined : (e) => e.preventDefault()}
         >
-          <header className="flex flex-none items-start gap-2 border-b border-border px-3 py-2">
+          <header className="flex flex-none items-start gap-3 border-b border-border px-4 py-3">
             <div className="min-w-0 flex-1">
-              <RadixDialog.Title className="truncate text-md font-semibold text-text">
+              <RadixDialog.Title className="truncate text-lg font-semibold tracking-tight text-text">
                 {title}
               </RadixDialog.Title>
               {description ? (
-                <RadixDialog.Description className="mt-0.5 text-sm text-text-2">
+                <RadixDialog.Description className="mt-1 text-sm leading-snug text-text-2">
                   {description}
                 </RadixDialog.Description>
               ) : null}
@@ -91,16 +105,24 @@ export function Dialog({
                 <IconButton
                   label={t('common.close')}
                   icon={<Icon name="x" />}
-                  className="mt-0.5"
+                  className="-mr-1 mt-px"
                 />
               </RadixDialog.Close>
             ) : null}
           </header>
 
-          <div className="min-h-0 flex-1 overflow-y-auto px-3 py-3">{children}</div>
+          <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-4">
+            {children}
+          </div>
 
           {footer ? (
-            <footer className="flex flex-none items-center justify-end gap-2 border-t border-border px-3 py-2">
+            <footer
+              className={cn(
+                'flex flex-none flex-wrap items-center justify-end gap-2',
+                // Quieter than the body, like a real window's command strip.
+                'border-t border-border bg-surface-2 px-4 py-3',
+              )}
+            >
               {footer}
             </footer>
           ) : null}

@@ -13,6 +13,11 @@
 //!    refuses to run — so a single bad byte can no longer turn into permanent
 //!    data loss on the next write.
 //!
+//! A third rule governs the IPC boundary: **ciphertext never leaves the
+//! backend.** [`Bookmark`] serializes its encrypted password for
+//! `bookmarks.json`, but every command returns a [`BookmarkView`], which carries
+//! a derived `hasPassword` flag in its place.
+//!
 //! Export archives are different: they travel to another machine where the vault
 //! key does not exist, so they are encrypted with an explicit user-supplied
 //! passphrase (see [`BookmarkStore::export_encrypted`]).
@@ -54,6 +59,10 @@ pub struct Bookmark {
     pub tags: Vec<String>,
     pub created_at: String,
     /// Vault-encrypted password. Absent when the bookmark has no stored secret.
+    ///
+    /// This serializes only *to disk*. Everything handed to the frontend goes
+    /// through [`BookmarkView`], which drops the blob and exposes a derived
+    /// `hasPassword` flag instead.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub encrypted_password: Option<EncryptedBlob>,
 }
@@ -147,6 +156,64 @@ impl Bookmark {
     pub fn connection_config(&self, vault: &Vault) -> AppResult<ConnectionConfig> {
         let password = self.password(vault)?;
         Ok(self.to_connection_config(password))
+    }
+}
+
+/// A bookmark as the **frontend** sees it.
+///
+/// [`Bookmark`] itself still carries `encrypted_password` because that is what
+/// `bookmarks.json` has to persist, but the renderer has no business seeing a
+/// credential blob: it used to receive the ciphertext, salt and nonce of every
+/// stored password on `list_bookmarks`, which turned any webview scripting bug
+/// into a credential exfiltration and leaked "this bookmark has a secret" even
+/// while the vault was locked. The one thing the UI actually needs is the
+/// derived [`Self::has_password`] flag, so that is the only thing it gets.
+///
+/// This type is serialize-only and deliberately has no `Deserialize`: nothing
+/// coming *from* the frontend may name a stored secret.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct BookmarkView {
+    pub id: String,
+    pub name: String,
+    pub host: String,
+    pub port: u16,
+    pub username: String,
+    pub protocol: Protocol,
+    pub remote_path: String,
+    pub local_path: Option<String>,
+    pub private_key_path: Option<String>,
+    pub passive_mode: Option<bool>,
+    pub tags: Vec<String>,
+    pub created_at: String,
+    /// True when a password is stored for this bookmark. Derived; the blob
+    /// itself never crosses the IPC boundary.
+    pub has_password: bool,
+}
+
+impl From<&Bookmark> for BookmarkView {
+    fn from(b: &Bookmark) -> Self {
+        Self {
+            id: b.id.clone(),
+            name: b.name.clone(),
+            host: b.host.clone(),
+            port: b.port,
+            username: b.username.clone(),
+            protocol: b.protocol,
+            remote_path: b.remote_path.clone(),
+            local_path: b.local_path.clone(),
+            private_key_path: b.private_key_path.clone(),
+            passive_mode: b.passive_mode,
+            tags: b.tags.clone(),
+            created_at: b.created_at.clone(),
+            has_password: b.has_password(),
+        }
+    }
+}
+
+impl From<Bookmark> for BookmarkView {
+    fn from(b: Bookmark) -> Self {
+        Self::from(&b)
     }
 }
 
@@ -802,6 +869,79 @@ mod tests {
         assert!(store.delete(&id));
         assert!(!store.delete(&id));
         assert!(store.list().is_empty());
+
+        std::fs::remove_dir_all(dir).ok();
+    }
+
+    #[test]
+    fn the_frontend_view_never_carries_the_ciphertext() {
+        let dir = temp_dir();
+        let vault = unlocked_vault(&dir);
+        let mut bookmark = sample("prod");
+        bookmark.set_password(&vault, "s3cret").unwrap();
+
+        let json = serde_json::to_value(BookmarkView::from(&bookmark)).unwrap();
+        assert!(
+            json.get("encryptedPassword").is_none(),
+            "the credential blob must not cross the IPC boundary"
+        );
+        assert!(json.get("encrypted_password").is_none());
+        assert_eq!(json["hasPassword"], true);
+        assert_eq!(json["remotePath"], "/");
+
+        // Nothing else got lost on the way out.
+        assert_eq!(json["id"], bookmark.id);
+        assert_eq!(json["host"], "example.com");
+        assert_eq!(json["port"], 22);
+        assert_eq!(json["protocol"], "sftp");
+
+        // And a whole-store render leaks nothing either.
+        let mut store = BookmarkStore::load_at(dir.join("bookmarks.json"));
+        store.add(bookmark);
+        let rendered = serde_json::to_string(
+            &store
+                .list()
+                .iter()
+                .map(BookmarkView::from)
+                .collect::<Vec<_>>(),
+        )
+        .unwrap();
+        assert!(!rendered.contains("encryptedPassword"));
+        assert!(!rendered.contains("ciphertext"));
+
+        std::fs::remove_dir_all(dir).ok();
+    }
+
+    #[test]
+    fn a_bookmark_without_a_password_reports_has_password_false() {
+        let json = serde_json::to_value(BookmarkView::from(&sample("prod"))).unwrap();
+        assert_eq!(json["hasPassword"], false);
+    }
+
+    #[test]
+    fn the_on_disk_format_still_stores_the_ciphertext() {
+        let dir = temp_dir();
+        let vault = unlocked_vault(&dir);
+        let path = dir.join("bookmarks.json");
+
+        let mut store = BookmarkStore::load_at(&path);
+        let mut bookmark = sample("prod");
+        bookmark.set_password(&vault, "s3cret").unwrap();
+        store.add(bookmark);
+        store.save().unwrap();
+
+        // Skipping the field on the wire must not have skipped it on disk.
+        let raw = std::fs::read_to_string(&path).unwrap();
+        assert!(
+            raw.contains("encryptedPassword"),
+            "persistence still needs the blob: {raw}"
+        );
+
+        let reloaded = BookmarkStore::load_at(&path);
+        assert_eq!(
+            reloaded.list()[0].password(&vault).unwrap().as_deref(),
+            Some("s3cret")
+        );
 
         std::fs::remove_dir_all(dir).ok();
     }

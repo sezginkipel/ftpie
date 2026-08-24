@@ -11,8 +11,10 @@ export interface SelectOption<T extends string> {
   disabled?: boolean;
 }
 
-export interface SelectProps<T extends string>
-  extends Omit<SelectHTMLAttributes<HTMLSelectElement>, 'value' | 'onChange'> {
+export interface SelectProps<T extends string> extends Omit<
+  SelectHTMLAttributes<HTMLSelectElement>,
+  'value' | 'onChange'
+> {
   value: T;
   onValueChange: (value: T) => void;
   options: readonly SelectOption<T>[];
@@ -32,13 +34,20 @@ function SelectInner<T extends string>(
   ref: React.Ref<HTMLSelectElement>,
 ) {
   return (
-    <div className="relative">
+    <div className="group relative">
       <select
         ref={ref}
         value={value}
         aria-invalid={invalid || undefined}
         onChange={(e) => onValueChange(e.target.value as T)}
-        className={cn(controlClass, 'cursor-pointer appearance-none pr-6', className)}
+        className={cn(
+          controlClass,
+          'cursor-pointer appearance-none pr-8',
+          // The native popup inherits the page font but not the tokens, so the
+          // options are given an explicit surface for the dark theme.
+          '[&>option]:bg-[var(--surface)] [&>option]:text-[var(--text)]',
+          className,
+        )}
         {...rest}
       >
         {options.map((option) => (
@@ -49,7 +58,10 @@ function SelectInner<T extends string>(
       </select>
       <Icon
         name="chevron-down"
-        className="pointer-events-none absolute right-1.5 top-1/2 -translate-y-1/2 text-text-3"
+        className={cn(
+          'pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2',
+          'text-text-3 transition-quick group-hover:text-text-2',
+        )}
       />
     </div>
   );

@@ -8,4 +8,5 @@ pub mod git;
 pub mod scripting;
 pub mod transfers;
 pub mod trust;
+pub mod update;
 pub mod vault;

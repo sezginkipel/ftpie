@@ -4,13 +4,18 @@
 //! credential without an unlocked vault, and `update_bookmark` no longer accepts
 //! a ciphertext blob from the frontend — a compromised or buggy renderer used to
 //! be able to overwrite stored secrets with arbitrary bytes.
+//!
+//! Nothing here returns a [`Bookmark`]: every command answers with a
+//! [`BookmarkView`], which omits `encrypted_password` and reports only the
+//! derived `hasPassword` flag. Credential ciphertext, salt and nonce stay in the
+//! backend, so the renderer cannot exfiltrate what it never receives.
 
 use std::sync::Arc;
 
 use serde::Deserialize;
 use tauri::State;
 
-use crate::bookmarks::{Bookmark, ImportReport};
+use crate::bookmarks::{Bookmark, BookmarkView, ImportReport};
 use crate::error::{AppError, AppResult};
 use crate::ftp::Protocol;
 use crate::state::{lock_or_recover, AppState};
@@ -18,8 +23,12 @@ use crate::state::{lock_or_recover, AppState};
 use super::connection::{connect, ConnectArgs, ConnectResult};
 
 #[tauri::command]
-pub async fn list_bookmarks(state: State<'_, AppState>) -> AppResult<Vec<Bookmark>> {
-    Ok(lock_or_recover(&state.bookmarks).list().to_vec())
+pub async fn list_bookmarks(state: State<'_, AppState>) -> AppResult<Vec<BookmarkView>> {
+    Ok(lock_or_recover(&state.bookmarks)
+        .list()
+        .iter()
+        .map(BookmarkView::from)
+        .collect())
 }
 
 #[derive(Debug, Deserialize)]
@@ -44,7 +53,7 @@ pub struct BookmarkInput {
 pub async fn create_bookmark(
     input: BookmarkInput,
     state: State<'_, AppState>,
-) -> AppResult<Bookmark> {
+) -> AppResult<BookmarkView> {
     let protocol = Protocol::parse(&input.protocol)?;
     let port = input.port.unwrap_or_else(|| protocol.default_port());
 
@@ -61,13 +70,13 @@ pub async fn create_bookmark(
         encrypt_password(&state, &mut bookmark, password).await?;
     }
 
-    let stored = bookmark.clone();
+    let view = BookmarkView::from(&bookmark);
     {
         let mut store = lock_or_recover(&state.bookmarks);
         store.add(bookmark);
         store.save()?;
     }
-    Ok(stored)
+    Ok(view)
 }
 
 #[derive(Debug, Deserialize)]
@@ -88,7 +97,7 @@ pub struct BookmarkUpdate {
 pub async fn update_bookmark(
     update: BookmarkUpdate,
     state: State<'_, AppState>,
-) -> AppResult<Bookmark> {
+) -> AppResult<BookmarkView> {
     let protocol = Protocol::parse(&update.fields.protocol)?;
 
     let mut bookmark = {
@@ -115,7 +124,7 @@ pub async fn update_bookmark(
         encrypt_password(&state, &mut bookmark, password).await?;
     }
 
-    let stored = bookmark.clone();
+    let view = BookmarkView::from(&bookmark);
     {
         let mut store = lock_or_recover(&state.bookmarks);
         if !store.update(bookmark) {
@@ -123,7 +132,7 @@ pub async fn update_bookmark(
         }
         store.save()?;
     }
-    Ok(stored)
+    Ok(view)
 }
 
 #[tauri::command]

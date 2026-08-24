@@ -1,6 +1,8 @@
 /**
- * Inline SVG icons: 14–16px, `currentColor`, `stroke-width: 1.5`. No emoji is
- * ever used as a UI icon.
+ * Inline SVG icons. Sizing, colour and stroke all come from the `.icon` /
+ * `.icon-16` classes in `globals.css` (15px and 17px at a 1.6 stroke — the old
+ * 14px/1.5 read as spindly beside 13.5px text). Never set a size here ad hoc.
+ * No emoji is ever used as a UI icon.
  *
  * Icons are decorative by default (`aria-hidden`), because the control around
  * them carries the accessible name. Pass a `title` only when an icon genuinely
@@ -64,7 +66,8 @@ export type IconName =
 
 /** Path data only — the wrapper supplies sizing, colour and stroke width. */
 const PATHS: Record<IconName, string> = {
-  folder: 'M2 4.5A1.5 1.5 0 0 1 3.5 3h3l1.5 2h4.5A1.5 1.5 0 0 1 14 6.5v5A1.5 1.5 0 0 1 12.5 13h-9A1.5 1.5 0 0 1 2 11.5v-7Z',
+  folder:
+    'M2 4.5A1.5 1.5 0 0 1 3.5 3h3l1.5 2h4.5A1.5 1.5 0 0 1 14 6.5v5A1.5 1.5 0 0 1 12.5 13h-9A1.5 1.5 0 0 1 2 11.5v-7Z',
   'folder-open':
     'M2 11.5V4.5A1.5 1.5 0 0 1 3.5 3h3l1.5 2h4.5A1.5 1.5 0 0 1 14 6.5M2 11.5A1.5 1.5 0 0 0 3.5 13h9l2-6H4l-2 4.5Z',
   file: 'M4 2h5l3 3v9H4V2Zm5 0v3h3',
@@ -108,13 +111,14 @@ const PATHS: Record<IconName, string> = {
   help: 'M8 1.5a6.5 6.5 0 1 0 0 13 6.5 6.5 0 0 0 0-13ZM6.2 6a1.8 1.8 0 0 1 3.6.3c0 1.2-1.8 1.4-1.8 2.7M8 11.5h.01',
   star: 'm8 2 1.9 3.9 4.3.6-3.1 3 .7 4.3L8 11.8 4.2 13.8l.7-4.3-3.1-3 4.3-.6L8 2Z',
   bookmark: 'M4 2.5h8v11L8 10.5l-4 3v-11Z',
-  'git-branch': 'M5 4.5a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3Zm0 10a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3Zm6-5a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3ZM5 4.5v7M5 8h3.5A2.5 2.5 0 0 0 11 5.5v-.5',
+  'git-branch':
+    'M5 4.5a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3Zm0 10a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3Zm6-5a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3ZM5 4.5v7M5 8h3.5A2.5 2.5 0 0 0 11 5.5v-.5',
   terminal: 'M2 3h12v10H2V3Zm2.5 3 2 2-2 2M8 10.5h3.5',
-  sparkles: 'm5.5 2 1 2.5L9 5.5 6.5 6.5l-1 2.5-1-2.5L2 5.5l2.5-1L5.5 2Zm5.5 6 .8 1.9 1.9.8-1.9.8-.8 1.9-.8-1.9-1.9-.8 1.9-.8L11 8Z',
+  sparkles:
+    'm5.5 2 1 2.5L9 5.5 6.5 6.5l-1 2.5-1-2.5L2 5.5l2.5-1L5.5 2Zm5.5 6 .8 1.9 1.9.8-1.9.8-.8 1.9-.8-1.9-1.9-.8 1.9-.8L11 8Z',
   panel: 'M2 3h12v10H2V3Zm4 0v10',
   list: 'M5.5 4.5h8M5.5 8h8M5.5 11.5h8M2.5 4.5h.01M2.5 8h.01M2.5 11.5h.01',
-  server:
-    'M2.5 3h11v4h-11V3Zm0 6h11v4h-11V9ZM5 5h.01M5 11h.01',
+  server: 'M2.5 3h11v4h-11V3Zm0 6h11v4h-11V9ZM5 5h.01M5 11h.01',
   key: 'M9.5 2a4.5 4.5 0 0 0-4.2 6L2 11.3V14h2.7l3.3-3.3A4.5 4.5 0 1 0 9.5 2Zm1.5 3h.01',
   clock: 'M8 1.5a6.5 6.5 0 1 0 0 13 6.5 6.5 0 0 0 0-13ZM8 4.5V8l2.5 1.5',
   'more-horizontal': 'M4 8h.01M8 8h.01M12 8h.01',
@@ -123,7 +127,10 @@ const PATHS: Record<IconName, string> = {
 
 export interface IconProps {
   name: IconName;
-  /** 14px by default; 16 for standalone or emphasised icons. */
+  /**
+   * The `size` values stay `14 | 16` because call sites all over the app pass
+   * them; they select the `.icon` (15px) and `.icon-16` (17px) classes.
+   */
   size?: 14 | 16;
   className?: string;
   /** Provide only when the icon carries meaning nothing around it repeats. */

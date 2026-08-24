@@ -195,9 +195,6 @@ describe('FilePane states', () => {
       'aria-sort',
       'ascending',
     );
-    expect(screen.getByRole('columnheader', { name: /Size/ })).toHaveAttribute(
-      'aria-sort',
-      'none',
-    );
+    expect(screen.getByRole('columnheader', { name: /Size/ })).toHaveAttribute('aria-sort', 'none');
   });
 });

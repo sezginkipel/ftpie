@@ -39,7 +39,7 @@
  * / `ai_set_key` / `ai_clear_key`. None of those are settings-store fields — they
  * are backend state, shown here because this is where people look for them.
  */
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
 
 import { chunkFingerprint, formatDate } from '../lib/format';
 import { useT } from '../lib/i18n';
@@ -62,7 +62,6 @@ import { DEFAULT_SETTINGS, useSettingsStore } from '../store/settingsStore';
 import { useVaultStore } from '../store/vaultStore';
 import {
   AlertDialog,
-  Badge,
   Button,
   Dialog,
   ErrorState,
@@ -173,10 +172,10 @@ export function SettingsDialog({ open, onOpenChange, initialTab }: SettingsDialo
           ) : (
             <span className="flex-1" />
           )}
-          <Button variant="danger" onClick={() => setConfirmReset(true)}>
+          <Button variant="danger" className="press" onClick={() => setConfirmReset(true)}>
             {t('common.resetDefaults')}
           </Button>
-          <Button variant="primary" onClick={() => onOpenChange(false)}>
+          <Button variant="primary" className="press" onClick={() => onOpenChange(false)}>
             {t('common.close')}
           </Button>
         </div>
@@ -195,224 +194,240 @@ export function SettingsDialog({ open, onOpenChange, initialTab }: SettingsDialo
         ]}
         className="min-h-0 flex-1"
       >
-        <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-auto p-1">
+        <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-auto p-1">
           {tab === 'general' ? (
             <>
-              <Field label={t('settings.locale')}>
-                {({ id }) => (
-                  <Select
-                    id={id}
-                    value={settings.locale}
-                    onValueChange={(value) => {
-                      const next = value as Locale;
-                      settings.set({ locale: next });
-                      // The provider is what every t() reads; keep them in step.
-                      setLocale(next);
-                    }}
-                    options={[
-                      { value: 'tr', label: t('settings.locale.tr') },
-                      { value: 'en', label: t('settings.locale.en') },
-                    ]}
-                  />
-                )}
-              </Field>
+              <SettingsGroup label={t('settings.group.appearance')}>
+                <Field label={t('settings.locale')} hint={t('settings.localeHint')}>
+                  {({ id }) => (
+                    <Select
+                      id={id}
+                      value={settings.locale}
+                      onValueChange={(value) => {
+                        const next = value as Locale;
+                        settings.set({ locale: next });
+                        // The provider is what every t() reads; keep them in step.
+                        setLocale(next);
+                      }}
+                      options={[
+                        { value: 'tr', label: t('settings.locale.tr') },
+                        { value: 'en', label: t('settings.locale.en') },
+                      ]}
+                    />
+                  )}
+                </Field>
 
-              <Field label={t('settings.theme')}>
-                {({ id }) => (
-                  <Select
-                    id={id}
-                    value={settings.theme}
-                    onValueChange={(value) =>
-                      settings.set({ theme: value as ThemePreference })
-                    }
-                    options={[
-                      { value: 'system', label: t('settings.theme.system') },
-                      { value: 'light', label: t('settings.theme.light') },
-                      { value: 'dark', label: t('settings.theme.dark') },
-                    ]}
-                  />
-                )}
-              </Field>
+                <Field label={t('settings.theme')} hint={t('settings.themeHint')}>
+                  {({ id }) => (
+                    <Select
+                      id={id}
+                      value={settings.theme}
+                      onValueChange={(value) => settings.set({ theme: value as ThemePreference })}
+                      options={[
+                        { value: 'system', label: t('settings.theme.system') },
+                        { value: 'light', label: t('settings.theme.light') },
+                        { value: 'dark', label: t('settings.theme.dark') },
+                      ]}
+                    />
+                  )}
+                </Field>
 
-              <Field label={t('settings.dateFormat')}>
-                {({ id }) => (
-                  <Select
-                    id={id}
-                    value={settings.dateFormat}
-                    onValueChange={(value) => settings.set({ dateFormat: value as DateFormat })}
-                    options={[
-                      { value: 'relative', label: t('settings.dateFormat.relative') },
-                      { value: 'short', label: t('settings.dateFormat.short') },
-                      { value: 'iso', label: t('settings.dateFormat.iso') },
-                    ]}
-                  />
-                )}
-              </Field>
+                <Field label={t('settings.dateFormat')} hint={t('settings.dateFormatHint')}>
+                  {({ id }) => (
+                    <Select
+                      id={id}
+                      value={settings.dateFormat}
+                      onValueChange={(value) => settings.set({ dateFormat: value as DateFormat })}
+                      options={[
+                        { value: 'relative', label: t('settings.dateFormat.relative') },
+                        { value: 'short', label: t('settings.dateFormat.short') },
+                        { value: 'iso', label: t('settings.dateFormat.iso') },
+                      ]}
+                    />
+                  )}
+                </Field>
+              </SettingsGroup>
 
-              <Field label={t('settings.defaultProtocol')}>
-                {({ id }) => (
-                  <Select
-                    id={id}
-                    value={settings.defaultProtocol}
-                    onValueChange={(value) =>
-                      settings.set({ defaultProtocol: value as Protocol })
-                    }
-                    options={PROTOCOLS.map((protocol) => ({
-                      value: protocol,
-                      label: t(`conn.protocol.${protocol}`),
-                    }))}
-                  />
-                )}
-              </Field>
+              <SettingsGroup label={t('settings.group.behaviour')}>
+                <Field
+                  label={t('settings.defaultProtocol')}
+                  hint={t('settings.defaultProtocolHint')}
+                >
+                  {({ id }) => (
+                    <Select
+                      id={id}
+                      value={settings.defaultProtocol}
+                      onValueChange={(value) =>
+                        settings.set({ defaultProtocol: value as Protocol })
+                      }
+                      options={PROTOCOLS.map((protocol) => ({
+                        value: protocol,
+                        label: t(`conn.protocol.${protocol}`),
+                      }))}
+                    />
+                  )}
+                </Field>
 
-              <Separator />
-
-              <Switch
-                checked={settings.showHiddenFiles}
-                onCheckedChange={(checked) => settings.set({ showHiddenFiles: checked })}
-                label={t('settings.showHiddenFiles')}
-                hint={t('settings.showHiddenFilesHint')}
-              />
-              <Switch
-                checked={settings.confirmDelete}
-                onCheckedChange={(checked) => settings.set({ confirmDelete: checked })}
-                label={t('settings.confirmDelete')}
-              />
+                <Switch
+                  checked={settings.showHiddenFiles}
+                  onCheckedChange={(checked) => settings.set({ showHiddenFiles: checked })}
+                  label={t('settings.showHiddenFiles')}
+                  hint={t('settings.showHiddenFilesHint')}
+                />
+                <Switch
+                  checked={settings.confirmDelete}
+                  onCheckedChange={(checked) => settings.set({ confirmDelete: checked })}
+                  label={t('settings.confirmDelete')}
+                  hint={t('settings.confirmDeleteHint')}
+                />
+              </SettingsGroup>
             </>
           ) : null}
 
           {tab === 'transfers' ? (
             <>
-              <Field
-                label={t('settings.maxConcurrentTransfers')}
-                hint={t('transfer.concurrencySessionsNote')}
-              >
-                {({ id, describedBy }) => (
-                  <NumberInput
-                    id={id}
-                    aria-describedby={describedBy}
-                    value={settings.maxConcurrentTransfers}
-                    onValueChange={(value) =>
-                      settings.set({
-                        maxConcurrentTransfers:
-                          value ?? DEFAULT_SETTINGS.maxConcurrentTransfers,
-                      })
-                    }
-                    min={1}
-                    max={16}
-                    className="w-20"
-                  />
-                )}
-              </Field>
-
-              <Field label={t('settings.overwriteMode')}>
-                {({ id }) => (
-                  <Select
-                    id={id}
-                    value={settings.overwriteMode}
-                    onValueChange={(value) =>
-                      settings.set({ overwriteMode: value as OverwriteMode })
-                    }
-                    options={[
-                      { value: 'ask', label: t('settings.overwriteMode.ask') },
-                      { value: 'overwrite', label: t('settings.overwriteMode.overwrite') },
-                      { value: 'skip', label: t('settings.overwriteMode.skip') },
-                      { value: 'rename', label: t('settings.overwriteMode.rename') },
-                    ]}
-                  />
-                )}
-              </Field>
-
-              <Field label={t('settings.doubleClickAction')}>
-                {({ id }) => (
-                  <Select
-                    id={id}
-                    value={settings.doubleClickAction}
-                    onValueChange={(value) =>
-                      settings.set({ doubleClickAction: value as DoubleClickAction })
-                    }
-                    options={[
-                      { value: 'open', label: t('settings.doubleClickAction.open') },
-                      { value: 'download', label: t('settings.doubleClickAction.download') },
-                    ]}
-                  />
-                )}
-              </Field>
-
-              <Separator />
-
-              <div className="grid gap-3 sm:grid-cols-2">
-                <Field label={t('settings.connectTimeout')} hint={t('settings.seconds')}>
+              <SettingsGroup label={t('settings.group.queue')}>
+                <Field
+                  label={t('settings.maxConcurrentTransfers')}
+                  hint={t('transfer.concurrencySessionsNote')}
+                >
                   {({ id, describedBy }) => (
                     <NumberInput
                       id={id}
                       aria-describedby={describedBy}
-                      value={settings.connectTimeoutSecs}
+                      value={settings.maxConcurrentTransfers}
                       onValueChange={(value) =>
                         settings.set({
-                          connectTimeoutSecs: value ?? DEFAULT_SETTINGS.connectTimeoutSecs,
+                          maxConcurrentTransfers: value ?? DEFAULT_SETTINGS.maxConcurrentTransfers,
                         })
                       }
                       min={1}
-                      max={300}
+                      max={16}
+                      className="w-20"
                     />
                   )}
                 </Field>
-                <Field label={t('settings.ioTimeout')} hint={t('settings.seconds')}>
-                  {({ id, describedBy }) => (
-                    <NumberInput
+              </SettingsGroup>
+
+              <SettingsGroup label={t('settings.group.conflicts')}>
+                <Field label={t('settings.overwriteMode')} hint={t('settings.overwriteModeHint')}>
+                  {({ id }) => (
+                    <Select
                       id={id}
-                      aria-describedby={describedBy}
-                      value={settings.ioTimeoutSecs}
+                      value={settings.overwriteMode}
                       onValueChange={(value) =>
-                        settings.set({ ioTimeoutSecs: value ?? DEFAULT_SETTINGS.ioTimeoutSecs })
+                        settings.set({ overwriteMode: value as OverwriteMode })
                       }
-                      min={1}
-                      max={3600}
+                      options={[
+                        { value: 'ask', label: t('settings.overwriteMode.ask') },
+                        { value: 'overwrite', label: t('settings.overwriteMode.overwrite') },
+                        { value: 'skip', label: t('settings.overwriteMode.skip') },
+                        { value: 'rename', label: t('settings.overwriteMode.rename') },
+                      ]}
                     />
                   )}
                 </Field>
-              </div>
+
+                <Field
+                  label={t('settings.doubleClickAction')}
+                  hint={t('settings.doubleClickActionHint')}
+                >
+                  {({ id }) => (
+                    <Select
+                      id={id}
+                      value={settings.doubleClickAction}
+                      onValueChange={(value) =>
+                        settings.set({ doubleClickAction: value as DoubleClickAction })
+                      }
+                      options={[
+                        { value: 'open', label: t('settings.doubleClickAction.open') },
+                        { value: 'download', label: t('settings.doubleClickAction.download') },
+                      ]}
+                    />
+                  )}
+                </Field>
+              </SettingsGroup>
+
+              <SettingsGroup label={t('settings.group.timeouts')}>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <Field label={t('settings.connectTimeout')} hint={t('settings.seconds')}>
+                    {({ id, describedBy }) => (
+                      <NumberInput
+                        id={id}
+                        aria-describedby={describedBy}
+                        value={settings.connectTimeoutSecs}
+                        onValueChange={(value) =>
+                          settings.set({
+                            connectTimeoutSecs: value ?? DEFAULT_SETTINGS.connectTimeoutSecs,
+                          })
+                        }
+                        min={1}
+                        max={300}
+                      />
+                    )}
+                  </Field>
+                  <Field label={t('settings.ioTimeout')} hint={t('settings.seconds')}>
+                    {({ id, describedBy }) => (
+                      <NumberInput
+                        id={id}
+                        aria-describedby={describedBy}
+                        value={settings.ioTimeoutSecs}
+                        onValueChange={(value) =>
+                          settings.set({ ioTimeoutSecs: value ?? DEFAULT_SETTINGS.ioTimeoutSecs })
+                        }
+                        min={1}
+                        max={3600}
+                      />
+                    )}
+                  </Field>
+                </div>
+              </SettingsGroup>
             </>
           ) : null}
 
           {tab === 'editor' ? (
             <>
-              <div className="grid gap-3 sm:grid-cols-2">
-                <Field label={t('settings.editorFontSize')}>
-                  {({ id }) => (
-                    <NumberInput
-                      id={id}
-                      value={settings.editorFontSize}
-                      onValueChange={(value) =>
-                        settings.set({
-                          editorFontSize: value ?? DEFAULT_SETTINGS.editorFontSize,
-                        })
-                      }
-                      min={9}
-                      max={32}
-                    />
-                  )}
-                </Field>
-                <Field label={t('settings.editorTabSize')}>
-                  {({ id }) => (
-                    <NumberInput
-                      id={id}
-                      value={settings.editorTabSize}
-                      onValueChange={(value) =>
-                        settings.set({ editorTabSize: value ?? DEFAULT_SETTINGS.editorTabSize })
-                      }
-                      min={1}
-                      max={8}
-                    />
-                  )}
-                </Field>
-              </div>
-              <Switch
-                checked={settings.editorWordWrap}
-                onCheckedChange={(checked) => settings.set({ editorWordWrap: checked })}
-                label={t('settings.editorWordWrap')}
-              />
+              <SettingsGroup label={t('settings.group.editorText')}>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <Field label={t('settings.editorFontSize')}>
+                    {({ id }) => (
+                      <NumberInput
+                        id={id}
+                        value={settings.editorFontSize}
+                        onValueChange={(value) =>
+                          settings.set({
+                            editorFontSize: value ?? DEFAULT_SETTINGS.editorFontSize,
+                          })
+                        }
+                        min={9}
+                        max={32}
+                      />
+                    )}
+                  </Field>
+                  <Field label={t('settings.editorTabSize')}>
+                    {({ id }) => (
+                      <NumberInput
+                        id={id}
+                        value={settings.editorTabSize}
+                        onValueChange={(value) =>
+                          settings.set({ editorTabSize: value ?? DEFAULT_SETTINGS.editorTabSize })
+                        }
+                        min={1}
+                        max={8}
+                      />
+                    )}
+                  </Field>
+                </div>
+              </SettingsGroup>
+
+              <SettingsGroup label={t('settings.group.editorLayout')}>
+                <Switch
+                  checked={settings.editorWordWrap}
+                  onCheckedChange={(checked) => settings.set({ editorWordWrap: checked })}
+                  label={t('settings.editorWordWrap')}
+                  hint={t('settings.editorWordWrapHint')}
+                />
+              </SettingsGroup>
             </>
           ) : null}
 
@@ -517,17 +532,24 @@ function SecurityTab() {
     <>
       <section className="flex flex-col gap-2">
         <div className="flex items-center gap-2">
-          <h3 className="text-sm font-semibold text-text">{t('settings.vault')}</h3>
-          <Badge tone={vaultStatus?.unlocked ? 'ok' : 'warn'}>
+          <h3 className="text-sm font-semibold tracking-tight text-text">{t('settings.vault')}</h3>
+          <span
+            className={
+              vaultStatus?.unlocked
+                ? 'flex-none rounded-sm bg-ok-weak px-1.5 py-px text-2xs uppercase tracking-wider text-ok'
+                : 'flex-none rounded-sm bg-warn-weak px-1.5 py-px text-2xs uppercase tracking-wider text-warn'
+            }
+          >
             {!vaultStatus?.initialized
               ? t('vault.notInitialized')
               : vaultStatus.unlocked
                 ? t('vault.unlocked')
                 : t('vault.locked')}
-          </Badge>
+          </span>
           <span className="flex-1" />
           <Button
             size="sm"
+            className="press"
             icon={<Icon name="lock" />}
             disabled={!vaultStatus?.unlocked || vaultBusy}
             onClick={() => {
@@ -543,7 +565,7 @@ function SecurityTab() {
         </div>
 
         {vaultStatus?.initialized ? (
-          <div className="flex flex-col gap-2 rounded border border-border p-2">
+          <div className="flex flex-col gap-2.5 rounded-lg border border-border bg-surface-2 p-3">
             <p className="text-sm text-text-2">{t('vault.changePasswordBody')}</p>
             <Field label={t('vault.oldPassword')}>
               {({ id }) => (
@@ -592,11 +614,15 @@ function SecurityTab() {
                 />
               )}
             </Field>
-            <p className="text-xs text-text-3">{t('vault.cannotRecover')}</p>
+            <p className="flex items-start gap-2 rounded border border-border bg-warn-weak px-2 py-1.5 text-xs text-text">
+              <Icon name="alert-triangle" className="mt-px flex-none text-warn" />
+              {t('vault.cannotRecover')}
+            </p>
             {changeError ? <InlineError error={changeError} /> : null}
             <div className="flex justify-end">
               <Button
                 variant="primary"
+                className="press"
                 loading={vaultBusy}
                 disabled={verdict !== 'ok'}
                 onClick={() => void changePassword()}
@@ -612,9 +638,17 @@ function SecurityTab() {
 
       <section className="flex flex-col gap-2">
         <div className="flex items-center gap-2">
-          <h3 className="text-sm font-semibold text-text">{t('settings.trustedHosts')}</h3>
+          <h3 className="text-sm font-semibold tracking-tight text-text">
+            {t('settings.trustedHosts')}
+          </h3>
           <span className="flex-1" />
-          <Button size="sm" icon={<Icon name="refresh" />} onClick={() => void loadHosts()}>
+          <Button
+            size="sm"
+            variant="ghost"
+            className="press"
+            icon={<Icon name="refresh" />}
+            onClick={() => void loadHosts()}
+          >
             {t('common.refresh')}
           </Button>
         </div>
@@ -635,10 +669,11 @@ function SecurityTab() {
             {hosts.map((entry) => (
               <li
                 key={`${entry.kind}:${entry.host}:${entry.port}`}
-                className="flex items-start gap-2 rounded border border-border p-2"
+                className="flex items-start gap-2 rounded border border-border bg-surface-2 p-2.5 transition-quick hover:border-border-strong"
               >
+                <Icon name="shield" size={16} className="mt-0.5 flex-none text-text-3" />
                 <div className="min-w-0 flex-1">
-                  <p className="font-mono text-base text-text">
+                  <p className="select-text font-mono text-base text-text">
                     {entry.host}:{entry.port}
                   </p>
                   <p className="text-xs text-text-3">
@@ -657,6 +692,7 @@ function SecurityTab() {
                 <Button
                   size="sm"
                   variant="danger"
+                  className="press"
                   icon={<Icon name="trash" />}
                   onClick={() => setForgetting(entry)}
                 >
@@ -759,10 +795,16 @@ function AiKeysTab() {
 
   return (
     <>
-      <h3 className="text-sm font-semibold text-text">{t('settings.aiProviders')}</h3>
+      <h3 className="text-sm font-semibold tracking-tight text-text">
+        {t('settings.aiProviders')}
+      </h3>
       <p className="text-xs text-text-3">{t('ai.keyStorageNote')}</p>
       {!vaultUnlocked ? (
-        <p role="note" className="text-sm text-warn">
+        <p
+          role="note"
+          className="flex items-start gap-2 rounded border border-warn bg-warn-weak px-2.5 py-1.5 text-sm text-text"
+        >
+          <Icon name="lock" className="mt-px flex-none text-warn" />
           {t('settings.aiNeedsVault')}
         </p>
       ) : null}
@@ -777,17 +819,27 @@ function AiKeysTab() {
             return (
               <li
                 key={provider}
-                className="flex flex-col gap-1.5 rounded border border-border p-2"
+                className="flex flex-col gap-2 rounded-lg border border-border bg-surface-2 p-2.5"
               >
                 <div className="flex items-center gap-2">
-                  <span className="text-base text-text">{t(`ai.provider.${provider}`)}</span>
-                  <Badge tone={info.hasKey ? 'ok' : info.requiresKey ? 'warn' : 'neutral'}>
+                  <span className="text-base font-medium text-text">
+                    {t(`ai.provider.${provider}`)}
+                  </span>
+                  <span
+                    className={
+                      info.hasKey
+                        ? 'flex-none rounded-sm bg-ok-weak px-1.5 py-px text-2xs uppercase tracking-wider text-ok'
+                        : info.requiresKey
+                          ? 'flex-none rounded-sm bg-warn-weak px-1.5 py-px text-2xs uppercase tracking-wider text-warn'
+                          : 'flex-none rounded-sm bg-surface-3 px-1.5 py-px text-2xs uppercase tracking-wider text-text-2'
+                    }
+                  >
                     {info.hasKey
                       ? t('ai.keyConfigured')
                       : info.acceptsKey
                         ? t('ai.keyNotConfigured')
                         : t('settings.aiProviderNoKey')}
-                  </Badge>
+                  </span>
                   <span className="flex-1 truncate font-mono text-xs text-text-3">
                     {info.defaultModel}
                   </span>
@@ -814,16 +866,16 @@ function AiKeysTab() {
                       )}
                     </Field>
                     <Button
+                      className="press"
                       loading={busy === provider}
-                      disabled={
-                        (drafts[provider] ?? '').trim() === '' || !vaultUnlocked
-                      }
+                      disabled={(drafts[provider] ?? '').trim() === '' || !vaultUnlocked}
                       onClick={() => void setKey(provider)}
                     >
                       {t('ai.setKey')}
                     </Button>
                     <Button
                       variant="danger"
+                      className="press"
                       loading={busy === provider}
                       disabled={!info.hasKey}
                       onClick={() => void clearKey(provider)}
@@ -844,5 +896,26 @@ function AiKeysTab() {
         </ul>
       )}
     </>
+  );
+}
+
+// ── Layout ──────────────────────────────────────────────────────────────────
+
+/**
+ * A titled group of related settings.
+ *
+ * The old dialog was a flat stack of controls per tab — technically complete and
+ * impossible to scan. A micro-label with a fading rule, and the controls inset
+ * under it, gives each tab a shape without nesting boxes inside boxes.
+ */
+function SettingsGroup({ label, children }: { label: string; children: ReactNode }) {
+  return (
+    <section className="flex flex-col gap-2.5">
+      <div className="flex items-center gap-2">
+        <h3 className="flex-none text-2xs uppercase tracking-wider text-text-3">{label}</h3>
+        <span className="rule-soft flex-1" />
+      </div>
+      <div className="flex flex-col gap-3 pl-0.5">{children}</div>
+    </section>
   );
 }

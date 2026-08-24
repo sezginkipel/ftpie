@@ -1,0 +1,15 @@
+# Pinned so a developer's machine and CI cannot disagree.
+#
+# They already did: CI tracked `stable` while a local toolchain five releases
+# behind happily accepted code that CI then rejected (`unnecessary_sort_by`,
+# `question_mark`). Clippy gains lints every release, so "stable" is not a
+# version — it is whatever happened to be installed.
+#
+# Bumping `channel` is a deliberate pull request of its own: raise it, run
+# `cargo clippy --workspace --all-targets -- -D warnings` and `cargo fmt --all`,
+# and fix whatever the new release started noticing. Do not fold that into an
+# unrelated change.
+[toolchain]
+channel = "1.98.0"
+components = ["rustfmt", "clippy"]
+profile = "minimal"

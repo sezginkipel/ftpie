@@ -11,6 +11,7 @@ import {
   createContext,
   useCallback,
   useContext,
+  useEffect,
   useMemo,
   useState,
   type ReactNode,
@@ -56,17 +57,13 @@ const I18nContext = createContext<I18nContextValue | null>(null);
 
 export interface I18nProviderProps {
   children: ReactNode;
-  /** Initial locale. Defaults to `tr`. */
+  /** Initial locale. Defaults to {@link DEFAULT_LOCALE}. */
   locale?: Locale;
   /** Called when the locale changes, so the settings store can persist it. */
   onLocaleChange?: (locale: Locale) => void;
 }
 
-export function I18nProvider({
-  children,
-  locale: controlled,
-  onLocaleChange,
-}: I18nProviderProps) {
+export function I18nProvider({ children, locale: controlled, onLocaleChange }: I18nProviderProps) {
   const [internal, setInternal] = useState<Locale>(controlled ?? DEFAULT_LOCALE);
   const locale = controlled ?? internal;
 
@@ -77,6 +74,18 @@ export function I18nProvider({
     },
     [onLocaleChange],
   );
+
+  /*
+   * Keep `<html lang>` on the active locale.
+   *
+   * This is not cosmetic. `text-transform: uppercase` is locale-sensitive, and
+   * the document was hardcoded to `lang="tr"`, so every uppercased English
+   * label rendered with a dotted capital: MODIFIED came out as MODİFİED. It
+   * also drives hyphenation, spellcheck and what a screen reader announces.
+   */
+  useEffect(() => {
+    document.documentElement.lang = locale;
+  }, [locale]);
 
   const value = useMemo<I18nContextValue>(
     () => ({
@@ -132,9 +141,7 @@ export function errorMessage(e: unknown, t: TFunction): string {
     case 'timeout':
       return t('error.timeout');
     case 'not_found':
-      return err.path
-        ? t('error.not_found', { path: err.path })
-        : t('error.not_found.generic');
+      return err.path ? t('error.not_found', { path: err.path }) : t('error.not_found.generic');
     case 'permission':
       return t('error.permission');
     case 'conflict':

@@ -1,13 +1,15 @@
 {
   "$schema": "../gen/schemas/desktop-schema.json",
   "identifier": "default",
-  "description": "Minimum capability set for the ftpie main window. All file and network IO goes through custom Rust commands, so no plugin-fs or plugin-shell JS permissions are granted.",
+  "description": "Minimum capability set for the ftpie main window. All file and network IO goes through custom Rust commands, so no plugin-fs or plugin-shell JS permissions are granted. The updater is granted its default permissions (check and download) and process is granted restart only — not exit.",
   "windows": ["main"],
   "permissions": [
     "core:default",
     "core:event:default",
     "dialog:allow-open",
     "dialog:allow-save",
-    "notification:default"
+    "notification:default",
+    "updater:default",
+    "process:allow-restart"
   ]
 }

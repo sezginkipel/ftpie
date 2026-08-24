@@ -18,8 +18,10 @@
 //!   an empty static one, so `import "…"` cannot reach the filesystem.
 //! - **Filesystem confinement** — `read_file`/`write_file` resolve inside a
 //!   [`Workspace`] root (`config_dir()/scripts-workspace` by default). Absolute
-//!   paths, `..` traversal and symlinks pointing out of the root are rejected
-//!   with [`AppError::Permission`].
+//!   paths, `..` traversal and *any* symlink on the path are rejected with
+//!   [`AppError::Permission`]. Refusing every link, rather than only the ones
+//!   that currently point outside, is what closes the dangling-symlink hole:
+//!   see [`Workspace::resolve`].
 //! - **Cancellation** — an `on_progress` hook polls an `Arc<AtomicBool>`, so a
 //!   runaway script can always be stopped and can never pin a thread forever.
 //! - **Real remote operations** — the old `ftp_connect` stub returned a map
@@ -166,11 +168,25 @@ impl Workspace {
     /// Rejects, with [`AppError::Permission`]:
     /// - absolute paths and drive/UNC prefixes,
     /// - any `..` component,
+    /// - **any component that is a symlink**, wherever it points,
     /// - anything that, once symlinks are resolved, lands outside the root.
     ///
-    /// Symlink escapes are caught by canonicalizing the deepest existing
-    /// ancestor: the remaining components are all plain names, so they cannot
-    /// climb out.
+    /// The last check alone used to be the whole defence, by canonicalizing the
+    /// deepest *existing* ancestor and comparing it to the root. It missed
+    /// dangling links: `Path::exists()` follows links, so a symlink whose target
+    /// does not exist yet counted as non-existent, fell into the unresolved
+    /// tail, was re-attached verbatim, and `write_file` then created the target —
+    /// outside the root. Planting the link needs another process, so this is
+    /// defence in depth, but it is a real escape.
+    ///
+    /// So [`Self::reject_symlinks`] now walks every component with
+    /// `symlink_metadata`, which does *not* follow links, and refuses **any**
+    /// symlink rather than trying to work out which ones are safe. That choice is
+    /// deliberate: a link's target can be created, retargeted or swapped between
+    /// the check and the write, so no examination of it is worth trusting. A
+    /// script sandbox has no need to follow links, and a blanket refusal cannot
+    /// be raced. The canonicalize-and-compare check is kept behind it as a second
+    /// layer.
     pub fn resolve(&self, requested: &str) -> AppResult<PathBuf> {
         let trimmed = requested.trim();
         if trimmed.is_empty() {
@@ -203,6 +219,8 @@ impl Workspace {
                 }
             }
         }
+
+        self.reject_symlinks(rel, requested)?;
 
         let joined = self.root.join(rel);
 
@@ -244,6 +262,36 @@ impl Workspace {
             resolved.push(name);
         }
         Ok(resolved)
+    }
+
+    /// Refuse if any component of `rel`, walked from the root, is a symlink.
+    ///
+    /// `symlink_metadata` does not follow links, so this sees a link that
+    /// `Path::exists()` and `canonicalize` would have dissolved — including a
+    /// **dangling** one, which is the case the canonicalize-the-deepest-ancestor
+    /// check missed entirely.
+    ///
+    /// A component that does not exist at all is fine: that is the ordinary
+    /// "create this file" case.
+    fn reject_symlinks(&self, rel: &Path, requested: &str) -> AppResult<()> {
+        let mut probe = self.root.clone();
+        for component in rel.components() {
+            if matches!(component, std::path::Component::CurDir) {
+                continue;
+            }
+            probe.push(component);
+            match std::fs::symlink_metadata(&probe) {
+                Ok(meta) if meta.file_type().is_symlink() => {
+                    return Err(AppError::permission(format!(
+                        "'{requested}' goes through the symlink {}; scripts may not follow links \
+                         inside the script workspace",
+                        probe.display()
+                    )))
+                }
+                _ => {}
+            }
+        }
+        Ok(())
     }
 }
 
@@ -939,6 +987,116 @@ mod tests {
             "unexpected error: {escaped}"
         );
         assert!(!dir.join("pwned.txt").exists());
+
+        std::fs::remove_dir_all(dir).ok();
+    }
+
+    /// Plant a symlink, reporting whether the platform allowed it. Creating one
+    /// on Windows needs Developer Mode or elevation, so a test that cannot plant
+    /// its link skips instead of failing for an unrelated reason.
+    fn plant_symlink(target: &Path, link: &Path) -> bool {
+        #[cfg(unix)]
+        {
+            std::os::unix::fs::symlink(target, link).is_ok()
+        }
+        #[cfg(windows)]
+        {
+            std::os::windows::fs::symlink_file(target, link).is_ok()
+        }
+        #[cfg(not(any(unix, windows)))]
+        {
+            let _ = (target, link);
+            false
+        }
+    }
+
+    /// The escape this closes: `Path::exists()` follows links, so a symlink whose
+    /// target does not exist yet used to count as "not there", survive into the
+    /// unresolved tail, and get re-attached — after which `write_file` created
+    /// the target outside the root.
+    #[test]
+    fn workspace_refuses_to_write_through_a_dangling_symlink() {
+        let dir = temp_dir();
+        let ws = workspace(&dir);
+
+        let outside = dir.join("pwned.txt");
+        let link = ws.root().join("escape.txt");
+        if !plant_symlink(&outside, &link) {
+            eprintln!("skipping: this platform will not let the test plant a symlink");
+            std::fs::remove_dir_all(dir).ok();
+            return;
+        }
+        assert!(!outside.exists(), "the link must start out dangling");
+
+        let err = ws.resolve("escape.txt").unwrap_err();
+        assert_eq!(err.code(), "permission");
+        assert!(err.to_string().contains("symlink"), "{err}");
+
+        // And through the script surface that actually writes.
+        let refused = run(r#"write_file("escape.txt", "pwned")"#, &dir).unwrap_err();
+        assert!(
+            refused.to_string().contains("permission"),
+            "unexpected error: {refused}"
+        );
+        assert!(
+            !outside.exists(),
+            "the write followed the link and landed outside the workspace"
+        );
+
+        std::fs::remove_dir_all(dir).ok();
+    }
+
+    /// Same hole one level up: the link is a *directory* component of the path,
+    /// so the file being created is a plain name and only the parent is a link.
+    #[test]
+    fn workspace_refuses_a_symlinked_directory_component() {
+        let dir = temp_dir();
+        let ws = workspace(&dir);
+
+        let outside = dir.join("outside-dir");
+        std::fs::create_dir_all(&outside).unwrap();
+        let link = ws.root().join("bridge");
+        if !plant_symlink(&outside, &link) {
+            eprintln!("skipping: this platform will not let the test plant a symlink");
+            std::fs::remove_dir_all(dir).ok();
+            return;
+        }
+
+        assert_eq!(
+            ws.resolve("bridge/pwned.txt").unwrap_err().code(),
+            "permission"
+        );
+        let refused = run(r#"write_file("bridge/pwned.txt", "pwned")"#, &dir).unwrap_err();
+        assert!(
+            refused.to_string().contains("permission"),
+            "unexpected error: {refused}"
+        );
+        assert!(!outside.join("pwned.txt").exists());
+
+        std::fs::remove_dir_all(dir).ok();
+    }
+
+    /// A resolvable link whose target is inside the root is refused too. This is
+    /// the difference between "no symlink may escape" and "no symlink may be
+    /// traversed": canonicalize would quietly dissolve this one, leaving nothing
+    /// to check, and a target that can be swapped between the check and the write
+    /// is not worth examining.
+    #[test]
+    fn workspace_refuses_even_an_inward_pointing_symlink() {
+        let dir = temp_dir();
+        let ws = workspace(&dir);
+
+        let inside = ws.root().join("real.txt");
+        std::fs::write(&inside, b"hello").unwrap();
+        let link = ws.root().join("alias.txt");
+        if !plant_symlink(&inside, &link) {
+            eprintln!("skipping: this platform will not let the test plant a symlink");
+            std::fs::remove_dir_all(dir).ok();
+            return;
+        }
+
+        assert!(ws.resolve("real.txt").is_ok());
+        assert_eq!(ws.resolve("alias.txt").unwrap_err().code(), "permission");
 
         std::fs::remove_dir_all(dir).ok();
     }

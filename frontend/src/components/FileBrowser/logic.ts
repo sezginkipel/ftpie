@@ -191,11 +191,7 @@ export interface ClickModifiers {
 }
 
 /** Inclusive slice of `paths` between two members, in either order. */
-export function rangeBetween(
-  paths: readonly string[],
-  from: string,
-  to: string,
-): string[] {
+export function rangeBetween(paths: readonly string[], from: string, to: string): string[] {
   const start = paths.indexOf(from);
   const end = paths.indexOf(to);
   if (start < 0 || end < 0) return end < 0 ? [] : [to];
@@ -338,9 +334,7 @@ export function findConflicts<T extends { name: string }>(
   for (const name of destinationNames) {
     taken.add(caseInsensitive ? name.toLowerCase() : name);
   }
-  return items.filter((item) =>
-    taken.has(caseInsensitive ? item.name.toLowerCase() : item.name),
-  );
+  return items.filter((item) => taken.has(caseInsensitive ? item.name.toLowerCase() : item.name));
 }
 
 /** Windows and macOS destinations collide case-insensitively; remote POSIX does not. */

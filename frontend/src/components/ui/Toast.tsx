@@ -1,13 +1,6 @@
 /* eslint-disable react-refresh/only-export-components */
 import * as RadixToast from '@radix-ui/react-toast';
-import {
-  createContext,
-  useCallback,
-  useContext,
-  useMemo,
-  useState,
-  type ReactNode,
-} from 'react';
+import { createContext, useCallback, useContext, useMemo, useState, type ReactNode } from 'react';
 
 import { cn } from '../../lib/cn';
 import { errorDetail, errorMessage, useT, type TKey } from '../../lib/i18n';
@@ -45,21 +38,18 @@ interface ToastApi {
 
 const ToastContext = createContext<ToastApi | null>(null);
 
-const VARIANT_STYLE: Record<ToastVariant, { border: string; icon: IconName; tone: string }> =
-  {
-    info: { border: 'border-l-[var(--info)]', icon: 'info', tone: 'text-info' },
-    ok: { border: 'border-l-[var(--ok)]', icon: 'check', tone: 'text-ok' },
-    warn: {
-      border: 'border-l-[var(--warn)]',
-      icon: 'alert-triangle',
-      tone: 'text-warn',
-    },
-    danger: {
-      border: 'border-l-[var(--danger)]',
-      icon: 'alert-circle',
-      tone: 'text-danger',
-    },
-  };
+/**
+ * Per-variant styling is a coloured leading edge plus a matching icon — not a
+ * tinted surface. A fully tinted toast reads as an alert box and, stacked four
+ * deep, turns the corner of the screen into a traffic light; the edge carries the
+ * same information while every toast still looks like the same object.
+ */
+const VARIANT_STYLE: Record<ToastVariant, { edge: string; icon: IconName; tone: string }> = {
+  info: { edge: 'bg-info', icon: 'info', tone: 'text-info' },
+  ok: { edge: 'bg-ok', icon: 'check', tone: 'text-ok' },
+  warn: { edge: 'bg-warn', icon: 'alert-triangle', tone: 'text-warn' },
+  danger: { edge: 'bg-danger', icon: 'alert-circle', tone: 'text-danger' },
+};
 
 let nextId = 1;
 
@@ -127,18 +117,21 @@ export function ToastProvider({ children }: { children: ReactNode }) {
                 if (!open) dismiss(item.id);
               }}
               className={cn(
-                'flex animate-toast-in items-start gap-2 rounded border border-l-2 border-border-strong',
-                'bg-surface px-2 py-1.5 shadow-xl',
-                style.border,
+                'raised relative flex items-start gap-2.5 overflow-hidden',
+                'animate-toast-in rounded-lg py-2.5 pl-4 pr-2 shadow-e3',
+                'data-[swipe=move]:translate-x-[var(--radix-toast-swipe-move-x)]',
               )}
             >
-              <Icon name={style.icon} className={cn('mt-0.5', style.tone)} />
+              {/* The variant's leading edge. Decorative: the icon and the text
+                  already carry the meaning. */}
+              <span aria-hidden className={cn('absolute inset-y-0 left-0 w-[3px]', style.edge)} />
+              <Icon name={style.icon} className={cn('mt-[3px] flex-none', style.tone)} />
               <div className="min-w-0 flex-1">
-                <RadixToast.Title className="text-base text-text">
+                <RadixToast.Title className="text-base font-medium tracking-tight text-text">
                   {item.title}
                 </RadixToast.Title>
                 {item.description ? (
-                  <RadixToast.Description className="mt-0.5 break-words font-mono text-xs text-text-3">
+                  <RadixToast.Description className="mt-1 break-words font-mono text-xs leading-snug text-text-3">
                     {item.description}
                   </RadixToast.Description>
                 ) : null}
@@ -152,7 +145,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
 
         <RadixToast.Viewport
           label={t('toast.region')}
-          className="fixed bottom-2 right-2 z-[60] flex w-80 max-w-[92vw] flex-col gap-1.5 outline-none"
+          className="fixed bottom-3 right-3 z-[60] flex w-[22rem] max-w-[92vw] flex-col gap-2 outline-none"
         />
       </RadixToast.Provider>
     </ToastContext.Provider>

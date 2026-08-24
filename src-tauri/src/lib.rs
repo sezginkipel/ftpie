@@ -41,6 +41,11 @@ pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_notification::init())
+        // Signed auto-update. The plugin only checks and downloads when a
+        // command asks it to; nothing here installs on its own.
+        .plugin(tauri_plugin_updater::Builder::new().build())
+        // Supplies the relaunch after an update is staged.
+        .plugin(tauri_plugin_process::init())
         .manage(AppState::new())
         .invoke_handler(tauri::generate_handler![
             // App
@@ -53,6 +58,10 @@ pub fn run() {
             commands::trust::list_trusted_hosts,
             commands::trust::trust_host,
             commands::trust::forget_trusted_host,
+            // Signed auto-update (check is safe to call on start; install
+            // is always an explicit user action)
+            commands::update::update_check,
+            commands::update::update_install,
             // Credential vault
             commands::vault::vault_status,
             commands::vault::vault_initialize,

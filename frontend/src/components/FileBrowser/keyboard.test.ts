@@ -1,12 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import {
-  isTypeAheadKey,
-  mapGlobalKey,
-  mapPaneKey,
-  PAGE_ROWS,
-  type KeyLike,
-} from './keyboard';
+import { isTypeAheadKey, mapGlobalKey, mapPaneKey, PAGE_ROWS, type KeyLike } from './keyboard';
 
 function key(partial: Partial<KeyLike> & { key: string }): KeyLike {
   return { ctrlKey: false, metaKey: false, shiftKey: false, altKey: false, ...partial };

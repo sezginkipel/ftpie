@@ -10,7 +10,11 @@ export interface SpinnerProps {
   label?: string;
 }
 
-/** Indeterminate activity indicator. Honours `prefers-reduced-motion`. */
+/**
+ * Indeterminate activity indicator: a faint full ring with a rotating arc over
+ * it. Honours `prefers-reduced-motion` via the global rule, where it settles
+ * into a static ring rather than disappearing.
+ */
 export function Spinner({ size = 14, className, label }: SpinnerProps) {
   return (
     <svg
@@ -23,17 +27,27 @@ export function Spinner({ size = 14, className, label }: SpinnerProps) {
       aria-hidden={label ? undefined : true}
       focusable="false"
     >
+      {/* The full ring at low opacity keeps the spinner from looking like a
+          stray comma at 13px; the arc on top is what actually reads as motion. */}
       <circle
         cx="8"
         cy="8"
         r="6"
         fill="none"
         stroke="currentColor"
-        strokeWidth="1.5"
+        strokeWidth="1.8"
+        opacity="0.2"
+      />
+      <circle
+        cx="8"
+        cy="8"
+        r="6"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.8"
         strokeLinecap="round"
         strokeDasharray="28"
         strokeDashoffset="10"
-        opacity="0.9"
       />
     </svg>
   );

@@ -80,6 +80,7 @@ export function VaultDialog() {
     (mode !== 'change' || current.length > 0);
 
   const strength = passwordStrength(password);
+  // A four-segment meter: the label alone reads as an opinion, the bar as a fact.
   const strengthLabel = [
     t('vault.strengthWeak'),
     t('vault.strengthFair'),
@@ -137,11 +138,12 @@ export function VaultDialog() {
       footer={
         <>
           <InlineError error={error} className="mr-auto" />
-          <Button variant="secondary" onClick={closeDialog} disabled={busy}>
+          <Button variant="secondary" className="press" onClick={closeDialog} disabled={busy}>
             {t('common.cancel')}
           </Button>
           <Button
             variant="primary"
+            className="press"
             loading={busy}
             disabled={!canSubmit}
             onClick={() => void submit()}
@@ -158,18 +160,29 @@ export function VaultDialog() {
           void submit();
         }}
       >
-        <p className="text-base text-text-2">
-          {mode === 'initialize'
-            ? t('vault.initBody')
-            : mode === 'change'
-              ? t('vault.changePasswordBody')
-              : t('vault.unlockBody')}
-        </p>
+        <div className="flex items-start gap-2.5 rounded-lg border border-border bg-surface-2 p-3">
+          <Icon
+            name={mode === 'unlock' ? 'lock' : 'key'}
+            size={16}
+            className="mt-px flex-none text-accent"
+          />
+          <p className="min-w-0 text-base text-text-2">
+            {mode === 'initialize'
+              ? t('vault.initBody')
+              : mode === 'change'
+                ? t('vault.changePasswordBody')
+                : t('vault.unlockBody')}
+          </p>
+        </div>
 
+        {/* Losing the master password is unrecoverable, so it is a banner. */}
         {mode === 'initialize' ? (
-          <div className="flex items-start gap-2 rounded border border-[var(--warn)] bg-surface-2 p-2">
-            <Icon name="alert-triangle" className="mt-0.5 flex-none text-warn" />
-            <p className="text-sm text-text">{t('vault.cannotRecover')}</p>
+          <div
+            role="note"
+            className="flex items-start gap-2.5 rounded border border-warn bg-warn-weak p-2.5"
+          >
+            <Icon name="alert-triangle" size={16} className="mt-px flex-none text-warn" />
+            <p className="min-w-0 text-sm text-text">{t('vault.cannotRecover')}</p>
           </div>
         ) : null}
 
@@ -194,8 +207,10 @@ export function VaultDialog() {
           required
           error={tooShort ? t('vault.tooShort', { min: MIN_LENGTH }) : null}
           hint={
-            needsConfirm && password.length > 0 && !tooShort
-              ? t('vault.strength', { level: strengthLabel })
+            needsConfirm
+              ? password.length > 0
+                ? t('vault.strength', { level: strengthLabel })
+                : t('vault.tooShort', { min: MIN_LENGTH })
               : undefined
           }
         >
@@ -212,6 +227,29 @@ export function VaultDialog() {
             />
           )}
         </Field>
+
+        {needsConfirm && password.length > 0 ? (
+          <div
+            className="flex gap-1"
+            role="img"
+            aria-label={t('vault.strength', { level: strengthLabel })}
+          >
+            {[0, 1, 2, 3].map((step) => (
+              <span
+                key={step}
+                className={
+                  step <= strength
+                    ? strength === 0
+                      ? 'h-1 flex-1 rounded-full bg-danger'
+                      : strength === 1
+                        ? 'h-1 flex-1 rounded-full bg-warn'
+                        : 'h-1 flex-1 rounded-full bg-ok'
+                    : 'h-1 flex-1 rounded-full bg-surface-2'
+                }
+              />
+            ))}
+          </div>
+        ) : null}
 
         {needsConfirm ? (
           <Field

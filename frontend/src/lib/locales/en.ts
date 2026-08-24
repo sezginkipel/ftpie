@@ -101,8 +101,7 @@ export const en = {
   'app.shortcuts': 'Keyboard shortcuts',
   'app.quit': 'Quit',
   'app.quitBlockedTitle': 'You have unsaved changes',
-  'app.quitBlockedBody':
-    '{count} open file(s) have unsaved edits. Quitting now discards them.',
+  'app.quitBlockedBody': '{count} open file(s) have unsaved edits. Quitting now discards them.',
   'app.quitDiscard': 'Discard and quit',
   'app.toggleSidebar': 'Toggle sidebar',
   'app.toggleTransfers': 'Toggle transfer queue',
@@ -217,6 +216,7 @@ export const en = {
   'path.go': 'Go',
   'path.breadcrumb': 'Path breadcrumbs',
   'path.root': 'Root',
+  'path.expand': 'Show the hidden path segments',
 
   // ── Connection dialog ─────────────────────────────────────────────────────
   'conn.title': 'Connect to a server',
@@ -284,8 +284,7 @@ export const en = {
   'trust.listEmpty': 'No server identities have been trusted yet.',
   'trust.forget': 'Forget',
   'trust.forgetTitle': 'Forget this identity?',
-  'trust.forgetBody':
-    'You will be asked to verify {host} again the next time you connect.',
+  'trust.forgetBody': 'You will be asked to verify {host} again the next time you connect.',
   'trust.added': 'Trusted on',
 
   // ── Vault dialog ──────────────────────────────────────────────────────────
@@ -296,8 +295,7 @@ export const en = {
     'Pick a master password. It encrypts every server password ftpie stores for you and never leaves this computer.',
   'vault.cannotRecover':
     'There is no recovery. If you forget this password, stored server passwords are gone for good and you will have to re-enter them.',
-  'vault.unlockBody':
-    'Enter your master password to use stored server passwords in this session.',
+  'vault.unlockBody': 'Enter your master password to use stored server passwords in this session.',
   'vault.masterPassword': 'Master password',
   'vault.confirmPassword': 'Confirm master password',
   'vault.oldPassword': 'Current master password',
@@ -320,8 +318,7 @@ export const en = {
     'Every stored password is re-encrypted with the new master password in one step.',
   'vault.changed': 'Master password changed.',
   'vault.wrongPassword': 'That master password is not correct.',
-  'vault.requiredToSave':
-    'Saving a password needs an unlocked vault. Unlock it and try again.',
+  'vault.requiredToSave': 'Saving a password needs an unlocked vault. Unlock it and try again.',
   'vault.quarantinedTitle': 'Saved bookmarks could not be read',
   'vault.quarantinedBody':
     'Your bookmark file was written by an older version of ftpie and has been set aside rather than overwritten. Bookmarks are intact, but stored passwords must be entered again once.',
@@ -341,6 +338,7 @@ export const en = {
   'bookmark.localPath': 'Start in local folder',
   'bookmark.savePassword': 'Store the password in the vault',
   'bookmark.hasPassword': 'Password stored',
+  'bookmark.connected': 'Connected',
   'bookmark.noPassword': 'No password stored',
   'bookmark.clearPassword': 'Remove the stored password',
   'bookmark.keepPassword': 'Keep the stored password',
@@ -366,8 +364,7 @@ export const en = {
 
   // ── Conflict resolution ───────────────────────────────────────────────────
   'conflict.title': 'Some files already exist',
-  'conflict.body':
-    '{count} item(s) already exist at the destination. Choose what to do with each.',
+  'conflict.body': '{count} item(s) already exist at the destination. Choose what to do with each.',
   'conflict.existing': 'At the destination',
   'conflict.incoming': 'Being transferred',
   'conflict.overwrite': 'Overwrite',
@@ -434,8 +431,7 @@ export const en = {
   'editor.saved': '{name} saved.',
   'editor.saveFailed': '{name} could not be saved. Your changes are still here.',
   'editor.binaryTitle': 'Binary file — read only',
-  'editor.binaryBody':
-    'This file is not text. It is shown read-only so saving cannot corrupt it.',
+  'editor.binaryBody': 'This file is not text. It is shown read-only so saving cannot corrupt it.',
   'editor.reopenTitle': '{name} is already open',
   'editor.reopenBody':
     'You have unsaved changes in the open copy. Reloading replaces them with the version on the server.',
@@ -543,8 +539,7 @@ export const en = {
   'history.uploadedDeleted': '{uploaded} up, {deleted} del',
   'history.rollback': 'Roll back',
   'history.rollbackTitle': 'Roll back to this deploy?',
-  'history.rollbackBody':
-    'ftpie will re-upload the files as they were in commit {commit}.',
+  'history.rollbackBody': 'ftpie will re-upload the files as they were in commit {commit}.',
   'history.rollbackCaveats':
     'What rollback cannot do: it will not remove files added by later deploys unless you use the full-tree option, it cannot restore content that was never committed, it fails if that commit is no longer in your local repository, and it does not restore file modes, timestamps or ownership.',
   'history.rollbackFullTree': 'Plan against the whole commit tree',
@@ -596,8 +591,7 @@ export const en = {
 
   // ── AI assistant ──────────────────────────────────────────────────────────
   'ai.title': 'Assistant',
-  'ai.greeting':
-    'Ask about the files you have open, or describe what you want to reorganise.',
+  'ai.greeting': 'Ask about the files you have open, or describe what you want to reorganise.',
   'ai.placeholder': 'Ask something…',
   'ai.send': 'Send',
   'ai.thinking': 'Thinking…',
@@ -611,8 +605,7 @@ export const en = {
   'ai.model': 'Model',
   'ai.baseUrl': 'Base URL',
   'ai.baseUrlRequired': 'A custom provider needs a base URL.',
-  'ai.baseUrlInvalid':
-    'The base URL must use https, or http only for localhost.',
+  'ai.baseUrlInvalid': 'The base URL must use https, or http only for localhost.',
   'ai.keyMissing': 'No API key is configured for {provider}.',
   'ai.keyConfigured': 'Key configured',
   'ai.keyNotConfigured': 'No key',
@@ -633,8 +626,7 @@ export const en = {
   'ai.actionApply': 'Do this',
   'ai.actionApplied': 'Done: {description}',
   'ai.actionFailed': 'That action failed.',
-  'ai.rejectedActions':
-    '{count} suggestion(s) were discarded as invalid or not permitted.',
+  'ai.rejectedActions': '{count} suggestion(s) were discarded as invalid or not permitted.',
   'ai.queryFailed': 'The assistant could not be reached.',
   'ai.untrustedNote': 'Model output is shown as plain text and is not trusted.',
 
@@ -734,8 +726,7 @@ export const en = {
   'chmod.octalInvalid': 'Enter three or four octal digits, e.g. 755.',
   'chmod.applied': 'Permissions changed.',
   'chmod.recursive': 'Apply to everything inside',
-  'chmod.recursiveWarning':
-    'This changes permissions on every file and folder below this one.',
+  'chmod.recursiveWarning': 'This changes permissions on every file and folder below this one.',
 
   // ── Toasts ────────────────────────────────────────────────────────────────
   'toast.close': 'Dismiss notification',
@@ -826,8 +817,62 @@ export const en = {
   'settings.aiNeedsVault': 'Unlock the credential vault to store a key.',
   'settings.appliedImmediately': 'Every change here takes effect at once.',
 
+  // ── Auto-update ───────────────────────────────────────────────────────────
+  'update.title': 'A new version is available',
+  'update.fromVersion': 'You are running {current}',
+  'update.notes': 'What changed',
+  'update.published': 'Published {date}',
+  'update.install': 'Install and restart',
+  'update.installing': 'Installing…',
+  'update.later': 'Later',
+  'update.dismiss': 'Hide this notice',
+  'update.progressLabel': 'Update download progress',
+  'update.progressOf': '{done} of {total} downloaded',
+  'update.progressUnknownTotal': '{done} downloaded',
+  'update.starting': 'Starting the download…',
+  'update.signedOnly':
+    'Only updates signed with the official release key are accepted. ftpie restarts once the download is verified.',
+
   'shortcut.intro': 'Shortcuts apply to whichever area has focus.',
   'shortcut.group.panels': 'Panels',
+
+  // ── Panel and dialog redesign ─────────────────────────────────────────────
+  'conn.hostHint': 'Host name or IP address.',
+  'chmod.octalHint': 'Three or four digits, e.g. 644.',
+  'conn.portRange': '1-65535',
+  'conn.sectionServer': 'Server',
+  'conn.sectionCredentials': 'Sign in',
+  'conn.sectionBookmark': 'Bookmark',
+  'transfer.emptyHint': 'Files you copy between the panes appear here.',
+  'transfer.controls': 'Queue controls',
+  'transfer.queueProgress': 'Queue progress',
+  'transfer.errorHeading': 'Why it failed',
+  'trust.firstContact': 'First connection',
+  'trust.compareInstruction':
+    'Compare it character by character with the fingerprint your administrator gave you.',
+  'trust.decisionHelp':
+    'If you were not expecting this change, do not connect and ask the server’s administrator first.',
+  'editor.statusLine': 'Editor status',
+  'editor.tabDirtyMarker': 'Modified',
+  'deploy.planBytesLabel': 'To transfer',
+  'deploy.planSummaryLabel': 'Plan totals',
+  'ai.proposals': 'Proposed actions',
+  'script.sourceSection': 'Source',
+  'settings.group.appearance': 'Appearance',
+  'settings.group.behaviour': 'Behaviour',
+  'settings.group.queue': 'Queue',
+  'settings.group.conflicts': 'Files and conflicts',
+  'settings.group.timeouts': 'Timeouts',
+  'settings.group.editorText': 'Text',
+  'settings.group.editorLayout': 'Layout',
+  'settings.localeHint': 'Every label in the app changes at once.',
+  'settings.themeHint': 'The editor colour scheme follows this too.',
+  'settings.dateFormatHint': 'Used in file lists, deploy history and script runs.',
+  'settings.defaultProtocolHint': 'Preselected in the connection form.',
+  'settings.confirmDeleteHint': 'A confirmation step appears before anything is removed.',
+  'settings.overwriteModeHint': '“Ask me” shows the conflict list before anything is queued.',
+  'settings.doubleClickActionHint': 'Also applies to pressing Enter in a file pane.',
+  'settings.editorWordWrapHint': 'Long lines wrap instead of scrolling sideways.',
 } as const;
 
 export type TKey = keyof typeof en;

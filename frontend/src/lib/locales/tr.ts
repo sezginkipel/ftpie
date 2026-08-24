@@ -135,14 +135,12 @@ export const tr: Dictionary = {
     'Parola kasası kilitli. Kayıtlı parolaları kullanmak için ana parolanızla kilidi açın.',
   'error.auth':
     'Sunucu bu kimlik bilgilerini kabul etmedi. Kullanıcı adını, parolayı veya özel anahtarı denetleyin.',
-  'error.network':
-    'Sunucuya ulaşılamadı. Sunucu adını, portu ve ağ bağlantınızı denetleyin.',
+  'error.network': 'Sunucuya ulaşılamadı. Sunucu adını, portu ve ağ bağlantınızı denetleyin.',
   'error.timeout':
     'Sunucu zamanında yanıt vermedi. Yoğun olabilir ya da bir güvenlik duvarı bağlantıyı düşürüyor olabilir.',
   'error.not_found': '“{path}” sunucuda artık yok.',
   'error.not_found.generic': 'Bu öğe artık yok.',
-  'error.permission':
-    'Sunucu bu işlemi reddetti. Hesabınızın buna yetkisi yok.',
+  'error.permission': 'Sunucu bu işlemi reddetti. Hesabınızın buna yetkisi yok.',
   'error.conflict':
     'Dosya, siz açtıktan sonra sunucuda değişti. Üzerine yazmadan önce farkları gözden geçirin.',
   'error.protocol':
@@ -208,8 +206,7 @@ export const tr: Dictionary = {
   'delete.title': '{count} öğe silinsin mi?',
   'delete.bodyOne': '“{name}” kalıcı olarak silinecek.',
   'delete.bodyMany': '{count} öğe kalıcı olarak silinecek: {names}',
-  'delete.recursiveWarning':
-    'Seçimde klasör var. İçindeki her şey de silinir ve bu geri alınamaz.',
+  'delete.recursiveWarning': 'Seçimde klasör var. İçindeki her şey de silinir ve bu geri alınamaz.',
   'delete.confirmOne': '“{name}” dosyasını sil',
   'delete.confirmMany': '{count} öğeyi sil',
   'delete.deleting': 'Siliniyor…',
@@ -220,6 +217,7 @@ export const tr: Dictionary = {
   'path.go': 'Git',
   'path.breadcrumb': 'Yol adımları',
   'path.root': 'Kök',
+  'path.expand': 'Gizlenen yol adımlarını göster',
 
   // ── Bağlantı penceresi ────────────────────────────────────────────────────
   'conn.title': 'Sunucuya bağlan',
@@ -256,8 +254,7 @@ export const tr: Dictionary = {
   'session.tabs': 'Oturumlar',
   'session.closeTab': '{host} bağlantısını kes',
   'session.secure': 'Şifreli bağlantı',
-  'session.insecure':
-    'Şifresiz bağlantı — kimlik bilgileri ve veriler açık metin olarak gidiyor',
+  'session.insecure': 'Şifresiz bağlantı — kimlik bilgileri ve veriler açık metin olarak gidiyor',
   'session.disconnecting': 'Bağlantı kesiliyor…',
 
   // ── Güven penceresi ───────────────────────────────────────────────────────
@@ -288,8 +285,7 @@ export const tr: Dictionary = {
   'trust.listEmpty': 'Henüz hiçbir sunucu kimliğine güvenilmedi.',
   'trust.forget': 'Unut',
   'trust.forgetTitle': 'Bu kimlik unutulsun mu?',
-  'trust.forgetBody':
-    '{host} sunucusuna bir dahaki bağlanışınızda doğrulama yeniden istenecek.',
+  'trust.forgetBody': '{host} sunucusuna bir dahaki bağlanışınızda doğrulama yeniden istenecek.',
   'trust.added': 'Güvenilme tarihi',
 
   // ── Kasa penceresi ────────────────────────────────────────────────────────
@@ -345,6 +341,7 @@ export const tr: Dictionary = {
   'bookmark.localPath': 'Yerelde başlangıç klasörü',
   'bookmark.savePassword': 'Parolayı kasada sakla',
   'bookmark.hasPassword': 'Parola kayıtlı',
+  'bookmark.connected': 'Bağlı',
   'bookmark.noPassword': 'Kayıtlı parola yok',
   'bookmark.clearPassword': 'Kayıtlı parolayı kaldır',
   'bookmark.keepPassword': 'Kayıtlı parolayı koru',
@@ -370,8 +367,7 @@ export const tr: Dictionary = {
 
   // ── Çakışma çözümü ────────────────────────────────────────────────────────
   'conflict.title': 'Bazı dosyalar hedefte zaten var',
-  'conflict.body':
-    'Hedefte {count} öğe zaten var. Her biri için ne yapılacağını seçin.',
+  'conflict.body': 'Hedefte {count} öğe zaten var. Her biri için ne yapılacağını seçin.',
   'conflict.existing': 'Hedefteki',
   'conflict.incoming': 'Aktarılan',
   'conflict.overwrite': 'Üzerine yaz',
@@ -547,8 +543,7 @@ export const tr: Dictionary = {
   'history.uploadedDeleted': '{uploaded} yükleme, {deleted} silme',
   'history.rollback': 'Geri al',
   'history.rollbackTitle': 'Bu yayıma geri dönülsün mü?',
-  'history.rollbackBody':
-    'ftpie dosyaları {commit} işlemesindeki hâliyle yeniden yükleyecek.',
+  'history.rollbackBody': 'ftpie dosyaları {commit} işlemesindeki hâliyle yeniden yükleyecek.',
   'history.rollbackCaveats':
     'Geri almanın yapamadıkları: tam ağaç seçeneğini kullanmazsanız sonraki yayımların eklediği dosyaları kaldırmaz, hiç işlenmemiş içeriği geri getiremez, o işleme yerel deponuzda yoksa başarısız olur ve dosya izinlerini, tarihlerini ya da sahipliğini geri yüklemez.',
   'history.rollbackFullTree': 'Planı işlemenin tüm ağacına göre kur',
@@ -563,8 +558,7 @@ export const tr: Dictionary = {
   // ── Betik yöneticisi ──────────────────────────────────────────────────────
   'script.title': 'Otomasyon betikleri',
   'script.empty': 'Henüz betik yok',
-  'script.emptyHint':
-    'Betikler, yinelenen aktarımları Rhai dilini kullanarak otomatikleştirir.',
+  'script.emptyHint': 'Betikler, yinelenen aktarımları Rhai dilini kullanarak otomatikleştirir.',
   'script.new': 'Yeni betik',
   'script.name': 'Ad',
   'script.description': 'Açıklama',
@@ -616,8 +610,7 @@ export const tr: Dictionary = {
   'ai.model': 'Model',
   'ai.baseUrl': 'Temel URL',
   'ai.baseUrlRequired': 'Özel sağlayıcı için temel URL gerekir.',
-  'ai.baseUrlInvalid':
-    'Temel URL https olmalı; http yalnızca localhost için kabul edilir.',
+  'ai.baseUrlInvalid': 'Temel URL https olmalı; http yalnızca localhost için kabul edilir.',
   'ai.keyMissing': '{provider} için API anahtarı tanımlı değil.',
   'ai.keyConfigured': 'Anahtar tanımlı',
   'ai.keyNotConfigured': 'Anahtar yok',
@@ -738,8 +731,7 @@ export const tr: Dictionary = {
   'chmod.octalInvalid': 'Üç ya da dört sekizlik basamak girin, örneğin 755.',
   'chmod.applied': 'İzinler değiştirildi.',
   'chmod.recursive': 'İçindeki her şeye uygula',
-  'chmod.recursiveWarning':
-    'Bu, altındaki bütün dosya ve klasörlerin izinlerini değiştirir.',
+  'chmod.recursiveWarning': 'Bu, altındaki bütün dosya ve klasörlerin izinlerini değiştirir.',
 
   // ── Bildirimler ───────────────────────────────────────────────────────────
   'toast.close': 'Bildirimi kapat',
@@ -802,8 +794,7 @@ export const tr: Dictionary = {
   'script.noSession': 'Sunucu yok — yalnızca çalışma klasörü',
   'script.unsavedBuffer': 'Kaydedilmemiş betik',
   'script.nameRequired': 'Bir ad gerekli.',
-  'script.logsNote':
-    'Çıktı betik çalışırken toplanır; betik bitince ya da durdurulunca görünür.',
+  'script.logsNote': 'Çıktı betik çalışırken toplanır; betik bitince ya da durdurulunca görünür.',
   'script.editorLabel': 'Betik kaynağı',
   'script.selectPrompt': 'Bir betik seçin ya da yenisini başlatın.',
 
@@ -830,6 +821,61 @@ export const tr: Dictionary = {
   'settings.aiNeedsVault': 'Anahtar saklamak için kimlik kasasının kilidini açın.',
   'settings.appliedImmediately': 'Buradaki her değişiklik anında geçerli olur.',
 
+  // ── Otomatik güncelleme ────────────────────────────────────────────────
+  'update.title': 'Yeni bir sürüm var',
+  'update.fromVersion': 'Şu anda {current} sürümünü kullanıyorsunuz',
+  'update.notes': 'Neler değişti',
+  'update.published': 'Yayın tarihi {date}',
+  'update.install': 'Kur ve yeniden başlat',
+  'update.installing': 'Kuruluyor…',
+  'update.later': 'Sonra',
+  'update.dismiss': 'Bu bildirimi gizle',
+  'update.progressLabel': 'Güncelleme indirme ilerlemesi',
+  'update.progressOf': '{total} boyutunun {done} kadarı indirildi',
+  'update.progressUnknownTotal': '{done} indirildi',
+  'update.starting': 'İndirme başlıyor…',
+  'update.signedOnly':
+    'Yalnızca resmî yayın anahtarıyla imzalanmış güncellemeler kabul edilir. İndirme doğrulanınca ftpie yeniden başlar.',
+
   'shortcut.intro': 'Kısayollar, odakta olan alana göre çalışır.',
   'shortcut.group.panels': 'Paneller',
+  // ── Panel ve pencere yenilemesi ───────────────────────────────────────────
+  'conn.hostHint': 'Sunucu adı veya IP adresi.',
+  'chmod.octalHint': 'Üç ya da dört basamak, örneğin 644.',
+  'conn.portRange': '1-65535',
+  'conn.sectionServer': 'Sunucu',
+  'conn.sectionCredentials': 'Oturum açma',
+  'conn.sectionBookmark': 'Yer imi',
+  'transfer.emptyHint': 'Paneller arasında kopyaladığınız dosyalar burada görünür.',
+  'transfer.controls': 'Kuyruk denetimleri',
+  'transfer.queueProgress': 'Kuyruk ilerlemesi',
+  'transfer.errorHeading': 'Neden başarısız oldu',
+  'trust.firstContact': 'İlk bağlantı',
+  'trust.compareInstruction':
+    'Sunucu yöneticinizin verdiği parmak iziyle karakter karakter karşılaştırın.',
+  'trust.decisionHelp':
+    'Bu değişikliği beklemiyorduysanız bağlanmayın ve önce sunucu yöneticisine sorun.',
+  'editor.statusLine': 'Düzenleyici durumu',
+  'editor.tabDirtyMarker': 'Değiştirildi',
+  'deploy.planBytesLabel': 'Aktarılacak',
+  'deploy.planSummaryLabel': 'Plan toplamları',
+  'ai.proposals': 'Önerilen işlemler',
+  'script.sourceSection': 'Kaynak',
+  'settings.group.appearance': 'Görünüm',
+  'settings.group.behaviour': 'Davranış',
+  'settings.group.queue': 'Kuyruk',
+  'settings.group.conflicts': 'Dosyalar ve çakışmalar',
+  'settings.group.timeouts': 'Zaman aşımları',
+  'settings.group.editorText': 'Metin',
+  'settings.group.editorLayout': 'Yerleşim',
+  'settings.localeHint': 'Uygulamadaki bütün etiketler anında değişir.',
+  'settings.themeHint': 'Düzenleyicinin renk şeması da buna uyar.',
+  'settings.dateFormatHint':
+    'Dosya listelerinde, yayın geçmişinde ve betik çalıştırmalarında kullanılır.',
+  'settings.defaultProtocolHint': 'Bağlantı formunda önceden seçili gelir.',
+  'settings.confirmDeleteHint': 'Bir şey silinmeden önce onay adımı gösterilir.',
+  'settings.overwriteModeHint':
+    '“Bana sor” seçeneği, kuyruğa eklemeden önce çakışma listesini gösterir.',
+  'settings.doubleClickActionHint': 'Dosya panelinde Enter’a basmak için de geçerlidir.',
+  'settings.editorWordWrapHint': 'Uzun satırlar yana kaymak yerine alt satıra iner.',
 };

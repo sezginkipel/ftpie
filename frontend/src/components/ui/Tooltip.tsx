@@ -4,7 +4,10 @@ import type { ReactNode } from 'react';
 /** Mount once near the app root. */
 export function TooltipProvider({ children }: { children: ReactNode }) {
   return (
-    <RadixTooltip.Provider delayDuration={400} skipDelayDuration={200}>
+    // 300ms is long enough that a tooltip never flickers while the pointer
+    // crosses a toolbar, short enough that deliberately resting on a control
+    // feels answered. Once one has opened, neighbours show instantly.
+    <RadixTooltip.Provider delayDuration={300} skipDelayDuration={300}>
       {children}
     </RadixTooltip.Provider>
   );
@@ -45,16 +48,20 @@ export function Tooltip({
       <RadixTooltip.Portal>
         <RadixTooltip.Content
           side={side}
-          sideOffset={4}
+          sideOffset={6}
           collisionPadding={8}
           className={[
-            'z-50 max-w-sm rounded border border-border-strong bg-surface-2 px-1.5 py-1',
-            'text-sm text-text shadow-lg',
+            'raised z-50 max-w-sm animate-menu-in rounded px-2 py-1',
+            'text-sm leading-snug text-text shadow-e3',
             mono ? 'break-all font-mono' : '',
           ].join(' ')}
         >
           {content}
-          <RadixTooltip.Arrow className="fill-[var(--border-strong)]" />
+          <RadixTooltip.Arrow
+            width={10}
+            height={5}
+            className="fill-[var(--surface-3)] stroke-[var(--border-strong)]"
+          />
         </RadixTooltip.Content>
       </RadixTooltip.Portal>
     </RadixTooltip.Root>

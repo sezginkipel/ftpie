@@ -37,9 +37,21 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Read the pinned toolchain
+        id: pin
+        shell: bash
+        run: |
+          channel=$(grep -E '^channel' rust-toolchain.toml | cut -d'"' -f2)
+          echo "channel=$channel" >> "$GITHUB_OUTPUT"
+          echo "Pinned toolchain: $channel"
+
+      # Reads the version from rust-toolchain.toml, so the pin is the only
+      # place a toolchain is chosen. Pinning `stable` here as well would
+      # install a second toolchain that cargo then ignores.
       - name: Install Rust toolchain
-        uses: dtolnay/rust-toolchain@stable
+        uses: dtolnay/rust-toolchain@master
         with:
+          toolchain: ${{ steps.pin.outputs.channel }}
           targets: ${{ matrix.target }}
           components: rustfmt, clippy
 

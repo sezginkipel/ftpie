@@ -1,0 +1,75 @@
+# Weekly, grouped, and capped: dependency updates should be one reviewable pull
+# request per ecosystem, not a stream of twenty.
+#
+# Minor and patch updates are grouped together per ecosystem. Majors are left
+# ungrouped on purpose — they carry breaking changes and deserve their own PR.
+version: 2
+updates:
+  # The only crate is `src-tauri`, but it is a member of the virtual workspace at
+  # the repository root and `Cargo.lock` lives there, so Dependabot has to be
+  # pointed at the root: from `/src-tauri` it would find a manifest with no
+  # lockfile to update. This still covers every dependency of src-tauri.
+  - package-ecosystem: cargo
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 5
+    groups:
+      cargo-minor-and-patch:
+        applies-to: version-updates
+        patterns:
+          - "*"
+        update-types:
+          - minor
+          - patch
+    commit-message:
+      prefix: "deps(cargo)"
+
+  - package-ecosystem: npm
+    directory: /frontend
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 5
+    groups:
+      npm-minor-and-patch:
+        applies-to: version-updates
+        patterns:
+          - "*"
+        update-types:
+          - minor
+          - patch
+    commit-message:
+      prefix: "deps(frontend)"
+
+  - package-ecosystem: npm
+    directory: /web
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 3
+    groups:
+      npm-minor-and-patch:
+        applies-to: version-updates
+        patterns:
+          - "*"
+        update-types:
+          - minor
+          - patch
+    commit-message:
+      prefix: "deps(web)"
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 3
+    groups:
+      actions-all:
+        applies-to: version-updates
+        patterns:
+          - "*"
+    commit-message:
+      prefix: "deps(actions)"

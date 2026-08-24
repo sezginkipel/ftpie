@@ -11,8 +11,7 @@ import {
 } from './GitPanel';
 
 /** `t` bound to English, for the honest-upstream assertions. */
-const t = (key: TKey, vars?: Record<string, string | number>) =>
-  translate('en', key, vars);
+const t = (key: TKey, vars?: Record<string, string | number>) => translate('en', key, vars);
 
 function plan(overrides: Partial<DeployPlan> = {}): DeployPlan {
   return {
@@ -147,17 +146,13 @@ describe('summarisePlan', () => {
   });
 
   it('counts skipped entries', () => {
-    expect(
-      summarisePlan(plan({ skipped: [{ path: 'link', reason: 'symlink' }] })).skipped,
-    ).toBe(1);
+    expect(summarisePlan(plan({ skipped: [{ path: 'link', reason: 'symlink' }] })).skipped).toBe(1);
   });
 });
 
 describe('upstreamLabel', () => {
   it('says "no upstream" instead of 0/0 when there is none', () => {
-    expect(upstreamLabel(status({ ahead: null, behind: null }), t)).toBe(
-      'No upstream branch',
-    );
+    expect(upstreamLabel(status({ ahead: null, behind: null }), t)).toBe('No upstream branch');
   });
 
   it('still says "no upstream" when only one side is null', () => {

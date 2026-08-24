@@ -41,7 +41,6 @@ import { useUiStore } from '../store/uiStore';
 import { SaveConflictDialog } from './SaveConflictDialog';
 import {
   AlertDialog,
-  Badge,
   Button,
   EmptyState,
   Icon,
@@ -87,10 +86,7 @@ export function EditorPane({ className }: EditorPaneProps) {
 
   const tabs = useEditorStore((s) => s.tabs);
   const activeId = useEditorStore((s) => s.activeId);
-  const active = useMemo(
-    () => tabs.find((tab) => tab.id === activeId) ?? null,
-    [tabs, activeId],
-  );
+  const active = useMemo(() => tabs.find((tab) => tab.id === activeId) ?? null, [tabs, activeId]);
 
   const fontSize = useSettingsStore((s) => s.editorFontSize);
   const tabSize = useSettingsStore((s) => s.editorTabSize);
@@ -186,52 +182,75 @@ export function EditorPane({ className }: EditorPaneProps) {
         />
       ) : (
         <>
-          {/* ── Tab bar ── */}
+          {/*
+           * Tab strip. This is chrome, so it sits a surface step above the
+           * editor and the selected tab is cut out of it — lit, flush with the
+           * text below, and marked with an accent rail along its top edge. That
+           * reads as an editor; a row of equal-weight buttons reads as a form.
+           */}
           <div
             role="tablist"
             aria-label={t('editor.tabList')}
-            className="flex h-8 flex-none items-stretch overflow-x-auto border-b border-border"
+            className="flex h-9 flex-none items-stretch overflow-x-auto border-b border-border bg-surface-2"
           >
-            {tabs.map((tab) => (
-              <div
-                key={tab.id}
-                className={cn(
-                  'flex flex-none items-center gap-1.5 border-r border-border px-2 text-base',
-                  tab.id === activeId ? 'bg-surface-2 text-text' : 'text-text-2',
-                )}
-                // Middle-click closes, matching every editor people already use.
-                onAuxClick={(event) => {
-                  if (event.button === 1) {
-                    event.preventDefault();
-                    requestClose(tab);
-                  }
-                }}
-              >
-                <button
-                  type="button"
-                  role="tab"
-                  aria-selected={tab.id === activeId}
-                  onClick={() => useEditorStore.getState().setActive(tab.id)}
-                  className="flex max-w-[200px] items-center gap-1.5 truncate rounded"
+            {tabs.map((tab) => {
+              const selected = tab.id === activeId;
+              return (
+                <div
+                  key={tab.id}
+                  className={cn(
+                    'group relative flex flex-none items-center gap-1.5 border-r border-border pl-2.5 pr-1 text-base transition-quick',
+                    selected
+                      ? 'bg-surface text-text'
+                      : 'text-text-2 hover:bg-surface hover:text-text',
+                  )}
+                  // Middle-click closes, matching every editor people already use.
+                  onAuxClick={(event) => {
+                    if (event.button === 1) {
+                      event.preventDefault();
+                      requestClose(tab);
+                    }
+                  }}
                 >
-                  <Icon name={tab.isBinary ? 'file-binary' : 'file-text'} />
-                  <span className="truncate">{tab.fileName}</span>
-                  {tab.saving ? <Spinner /> : null}
-                  {tab.dirty ? (
-                    <span
-                      aria-label={t('editor.dirty')}
-                      title={t('editor.dirty')}
-                      className="h-1.5 w-1.5 flex-none rounded-full bg-warn"
-                    />
+                  {selected ? (
+                    <span aria-hidden="true" className="absolute inset-x-0 top-0 h-0.5 bg-accent" />
                   ) : null}
-                </button>
-                <IconButton
-                  label={t('editor.closeTab', { name: tab.fileName })}
-                  icon={<Icon name="x" />}
-                  onClick={() => requestClose(tab)}
-                />
-              </div>
-            ))}
+                  <button
+                    type="button"
+                    role="tab"
+                    aria-selected={selected}
+                    onClick={() => useEditorStore.getState().setActive(tab.id)}
+                    className="flex max-w-[220px] items-center gap-1.5 truncate rounded-sm py-1"
+                  >
+                    <Icon
+                      name={tab.isBinary ? 'file-binary' : 'file-text'}
+                      className={cn(
+                        'flex-none',
+                        tab.isBinary ? 'text-warn' : selected ? 'text-accent' : 'text-text-3',
+                      )}
+                    />
+                    <span className={cn('truncate', tab.dirty && 'italic')}>{tab.fileName}</span>
+                    {tab.saving ? <Spinner /> : null}
+                    {tab.dirty && !tab.saving ? (
+                      <span
+                        aria-label={t('editor.dirty')}
+                        title={t('editor.dirty')}
+                        className="h-1.5 w-1.5 flex-none rounded-full bg-warn shadow-[0_0_0_2px_var(--warn-weak)]"
+                      />
+                    ) : null}
+                  </button>
+                  <IconButton
+                    label={t('editor.closeTab', { name: tab.fileName })}
+                    icon={<Icon name="x" />}
+                    className={cn(
+                      'press transition-quick focus-visible:opacity-100 group-hover:opacity-100',
+                      selected ? 'opacity-100' : 'opacity-0',
+                    )}
+                    onClick={() => requestClose(tab)}
+                  />
+                </div>
+              );
+            })}
           </div>
 
           {active ? (
@@ -239,20 +258,38 @@ export function EditorPane({ className }: EditorPaneProps) {
               {active.isBinary ? (
                 <p
                   role="note"
-                  className="flex flex-none items-center gap-1.5 border-b border-border bg-surface-2 px-2 py-1 text-sm text-warn"
+                  className="flex flex-none items-center gap-2 border-b border-border bg-warn-weak px-3 py-1.5 text-sm"
                 >
-                  <Icon name="alert-triangle" />
-                  <strong className="font-semibold">{t('editor.binaryTitle')}</strong>
-                  <span className="text-text-2">{t('editor.binaryBody')}</span>
+                  <Icon name="alert-triangle" className="flex-none text-warn" />
+                  <strong className="font-semibold text-text">{t('editor.binaryTitle')}</strong>
+                  <span className="min-w-0 truncate text-text-2">{t('editor.binaryBody')}</span>
                 </p>
               ) : null}
 
+              {/*
+               * A save that failed is the one thing in this pane that must not
+               * be missable: a full-width tinted band, its own icon, and the
+               * backend reason spelled out underneath.
+               */}
               {active.saveError ? (
-                <div className="flex-none border-b border-danger bg-surface-2 px-2 py-1">
-                  <p className="text-sm font-semibold text-danger">
-                    {t('editor.saveBannerTitle')}
-                  </p>
-                  <InlineError error={active.saveError} />
+                <div className="flex flex-none items-start gap-2.5 border-b border-[var(--danger)] bg-surface-2 px-3 py-2 shadow-e1">
+                  <Icon name="alert-circle" size={16} className="mt-0.5 flex-none text-danger" />
+                  <div className="min-w-0 flex-1">
+                    <p className="text-base font-semibold tracking-tight text-danger">
+                      {t('editor.saveBannerTitle')}
+                    </p>
+                    <InlineError error={active.saveError} className="mt-1.5" />
+                  </div>
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    className="press"
+                    icon={<Icon name="save" />}
+                    loading={active.saving}
+                    onClick={() => void saveTab(active.id)}
+                  >
+                    {t('common.retry')}
+                  </Button>
                 </div>
               ) : null}
 
@@ -283,30 +320,53 @@ export function EditorPane({ className }: EditorPaneProps) {
                 />
               </div>
 
-              {/* ── Status line ── */}
-              <div className="flex h-statusbar flex-none items-center gap-3 border-t border-border px-2 text-xs text-text-2">
+              {/*
+               * Status line. Quieter than the tab strip above it: metadata is
+               * grouped, separated by hairlines instead of by whitespace, and
+               * every number is tabular so nothing jitters as you type.
+               */}
+              <div
+                aria-label={t('editor.statusLine')}
+                className="flex h-8 flex-none items-center gap-2.5 border-t border-border bg-surface-2 px-2 text-xs text-text-2"
+              >
                 <Tooltip content={active.remotePath} mono>
-                  <span className="min-w-0 max-w-[40%] truncate font-mono">
+                  <span className="min-w-0 max-w-[40%] truncate font-mono text-text-3">
                     {active.remotePath}
                   </span>
                 </Tooltip>
-                <span className="tnum">
+
+                <span aria-hidden="true" className="h-3.5 w-px flex-none bg-border" />
+
+                <span className="flex-none tnum">
                   {t('editor.lineCol', { line: position.line, column: position.column })}
                 </span>
-                <span>{language}</span>
-                <span className="uppercase">{active.encoding}</span>
-                <span className="tnum">
+                <span className="flex-none font-mono text-text-3">{language}</span>
+                <span className="flex-none uppercase tracking-wide text-text-3">
+                  {active.encoding}
+                </span>
+                <span className="flex-none tnum text-text-3">
                   {t('editor.bytesOnServer', { size: formatBytes(active.size) })}
                 </span>
+
                 {active.isBinary ? (
-                  <Badge tone="warn">{t('editor.readOnly')}</Badge>
+                  <span className="flex-none rounded-sm bg-warn-weak px-1.5 py-px text-2xs uppercase tracking-wider text-warn">
+                    {t('editor.readOnly')}
+                  </span>
                 ) : null}
-                {active.dirty ? <Badge tone="warn">{t('editor.dirty')}</Badge> : null}
+                {active.dirty ? (
+                  <span className="flex-none rounded-sm bg-warn-weak px-1.5 py-px text-2xs uppercase tracking-wider text-warn">
+                    {t('editor.dirty')}
+                  </span>
+                ) : null}
+
                 <span className="flex-1" />
-                <span className="text-text-3">{t('editor.middleClickHint')}</span>
+                <span className="hidden flex-none text-text-3 lg:inline">
+                  {t('editor.middleClickHint')}
+                </span>
                 <Button
                   size="sm"
                   variant="primary"
+                  className="press"
                   icon={<Icon name="save" />}
                   disabled={active.isBinary || !active.dirty}
                   loading={active.saving}

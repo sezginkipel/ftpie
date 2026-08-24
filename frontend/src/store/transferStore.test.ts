@@ -101,9 +101,7 @@ describe('applyUpdate — partial payload merging', () => {
       status: 'active',
       partial: true,
     });
-    store().applyUpdate(
-      item({ status: 'done', bytesDone: 1000, speedBps: 0, finishedAt: 'now' }),
-    );
+    store().applyUpdate(item({ status: 'done', bytesDone: 1000, speedBps: 0, finishedAt: 'now' }));
 
     const done = store().items.t1;
     expect(done.status).toBe('done');
@@ -186,8 +184,16 @@ describe('listForSession', () => {
   it('filters by session so a multi-server queue can be grouped', () => {
     store().applyUpdate(item({ id: 'a', sessionId: 's1' }));
     store().applyUpdate(item({ id: 'b', sessionId: 's2' }));
-    expect(store().listForSession('s1').map((i) => i.id)).toEqual(['a']);
-    expect(store().listForSession('s2').map((i) => i.id)).toEqual(['b']);
+    expect(
+      store()
+        .listForSession('s1')
+        .map((i) => i.id),
+    ).toEqual(['a']);
+    expect(
+      store()
+        .listForSession('s2')
+        .map((i) => i.id),
+    ).toEqual(['b']);
   });
 });
 

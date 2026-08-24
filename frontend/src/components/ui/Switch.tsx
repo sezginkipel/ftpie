@@ -30,11 +30,11 @@ export function Switch({
   return (
     <div className={cn('flex items-start justify-between gap-4', className)}>
       <div className="flex flex-col gap-0.5">
-        <label htmlFor={id} className="select-none text-base text-text">
+        <label htmlFor={id} className="select-none text-base leading-snug text-text">
           {label}
         </label>
         {hint ? (
-          <p id={hintId} className="text-xs text-text-3">
+          <p id={hintId} className="text-xs leading-snug text-text-3">
             {hint}
           </p>
         ) : null}
@@ -49,17 +49,26 @@ export function Switch({
         disabled={disabled}
         onClick={() => onCheckedChange(!checked)}
         className={cn(
-          'relative inline-flex h-4 w-7 flex-none items-center rounded-full border transition-quick',
-          checked ? 'border-accent bg-accent' : 'border-border-strong bg-surface-2',
-          disabled && 'cursor-not-allowed opacity-60',
+          'relative mt-0.5 inline-flex h-[18px] w-8 flex-none items-center rounded-full border',
+          'press transition-quick',
+          'focus-visible:outline-none focus-visible:shadow-focus',
+          checked
+            ? 'border-accent bg-accent'
+            : cn(
+                'border-border-strong bg-surface-2 shadow-[inset_0_1px_2px_rgba(0,0,0,0.08)]',
+                !disabled && 'hover:border-accent',
+              ),
+          disabled && 'cursor-not-allowed opacity-50',
         )}
       >
+        {/* The knob carries its own tiny elevation, which is what makes the
+            track read as a groove and the knob as a thing sitting in it. */}
         <span
           aria-hidden
           className={cn(
-            'block h-3 w-3 rounded-full transition-quick',
+            'block h-3.5 w-3.5 rounded-full shadow-e1 transition-base',
             checked
-              ? 'translate-x-[14px] bg-[var(--on-accent)]'
+              ? 'translate-x-[15px] bg-[var(--on-accent)]'
               : 'translate-x-0.5 bg-[var(--text-3)]',
           )}
         />

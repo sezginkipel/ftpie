@@ -285,26 +285,60 @@ Artifacts land in `<target-dir>/release/bundle/`:
 | Linux | `deb/`, `rpm/`, `appimage/` |
 
 Releases are produced by `.github/workflows/release.yml` on `v*` tags via
-`tauri-apps/tauri-action`. That workflow contains commented-out blocks marking
-exactly where Windows code-signing, macOS notarization, and updater-signing
-secrets plug in.
+`tauri-apps/tauri-action`. Updater signing is wired up; the workflow still
+contains commented-out blocks marking exactly where Windows code-signing and
+macOS notarization secrets plug in.
 
-### Auto-updater (currently disabled)
+### Auto-updater (enabled)
 
-The updater is intentionally **off**: there is no `plugins.updater` block in
-`src-tauri/tauri.conf.json` and no release endpoint exists yet. Enabling it
-requires all of:
+The updater is **on**. `src-tauri/tauri.conf.json` carries the release signing
+**public** key in `plugins.updater.pubkey` and points at
 
-1. `npx tauri signer generate -w ~/.tauri/ftpie.key` to create a keypair.
-2. The **public** key in `tauri.conf.json` under `plugins.updater.pubkey`, plus
-   `plugins.updater.endpoints` pointing at a JSON manifest you host.
-3. The `tauri-plugin-updater` crate dependency and its JS counterpart.
-4. `"updater:default"` added to `src-tauri/capabilities/default.json`.
-5. `TAURI_SIGNING_PRIVATE_KEY` and `TAURI_SIGNING_PRIVATE_KEY_PASSWORD` as
-   repository secrets, and the corresponding lines in `release.yml` uncommented.
+```
+https://github.com/sezginkipel/ftpie/releases/latest/download/latest.json
+```
 
-Do not ship an updater without signing — an unsigned update channel is a remote
-code execution channel.
+`bundle.createUpdaterArtifacts` is `true`, so every tagged build emits a
+minisign `.sig` beside each bundle, and `release.yml` publishes the merged
+`latest.json` manifest for all four platform targets.
+
+**How it behaves in the app.** On startup ftpie calls `update_check` once. If a
+newer release is offered, a notice appears in the bottom-left corner showing the
+version, the release notes and two buttons: *Install and restart* or *Later*.
+Nothing is ever downloaded or installed without that click — `update_check` only
+reads the manifest, and `update_install` is reachable only from the button. A
+failed check is silent, because it is background work the user did not ask for.
+
+**Only signed releases are offered.** The plugin verifies each downloaded
+artifact's minisign signature against the pinned public key before touching the
+installed app; a tampered, unsigned or mis-signed artifact is refused in Rust and
+surfaces as a signature error. An unsigned update channel is a remote code
+execution channel — do not disable this.
+
+**What you still have to do**, once, in the repository settings
+(*Settings → Secrets and variables → Actions*):
+
+1. Add `TAURI_SIGNING_PRIVATE_KEY` — the **contents** of the private key file
+   (`~/.tauri/ftpie-updater.key`). It is not in this repository and must never
+   be committed.
+2. Add `TAURI_SIGNING_PRIVATE_KEY_PASSWORD`. **This key was generated with an
+   empty passphrase, so create the secret with an empty value.** Do not skip it:
+   with the variable unset, the signer prompts for a passphrase and the CI job
+   hangs until it times out.
+
+Two operational notes:
+
+- `release.yml` creates the GitHub release as a **draft**. The
+  `releases/latest/download/…` URL only resolves to a *published*, non-prerelease
+  release, so no client is offered the update until you publish it — which is the
+  intended review gate.
+- A `verify-manifest` job fails the workflow if `latest.json` or the `.sig`
+  files are missing from the release, rather than leaving installed copies
+  polling a 404.
+
+Losing the private key means no future release can be offered as an update to
+already-installed copies; users would have to reinstall by hand. Back it up
+outside the repository.
 
 ---
 
@@ -417,10 +451,21 @@ CI (`.github/workflows/ci.yml`) runs all of the above on windows-latest (MSVC)
 and ubuntu-latest, and additionally validates that `tauri.conf.json` and the
 capability files parse and that every declared bundle icon exists.
 
-**Run `rustup update` before trusting a green local clippy.** CI tracks stable,
-so a toolchain even a few releases behind will miss lints that CI treats as
-errors — a stale local clippy passed this repo while CI failed on
-`unnecessary_sort_by` and `question_mark`.
+**The Rust toolchain is pinned in `rust-toolchain.toml`** (currently `1.98.0`,
+with `rustfmt` and `clippy`), so rustup selects the same compiler locally and in
+CI and there is nothing to keep in sync by hand. This exists because it went
+wrong: CI tracked `stable` while a local toolchain five releases behind happily
+accepted code CI then rejected on `unnecessary_sort_by` and `question_mark`.
+
+**Bumping that pin is a deliberate pull request of its own.** Raise `channel`,
+run `cargo fmt --all` and `cargo clippy --workspace --all-targets -- -D warnings`,
+and fix whatever the new release started noticing — in that PR and no other. Do
+not raise it as a side effect of an unrelated change, and do not work around a
+new lint by lowering it.
+
+Dependency updates arrive the same way: `.github/dependabot.yml` opens one
+weekly grouped PR per ecosystem (cargo, `frontend`, `web`, GitHub Actions) for
+minor and patch versions, and separate PRs for majors.
 
 Line endings are LF everywhere, enforced by `.gitattributes` (`eol=lf`) because
 `rustfmt.toml` pins `newline_style = "Unix"`. Do not "fix" a diff by converting
