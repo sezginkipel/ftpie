@@ -86,7 +86,7 @@ dirs = "5"
 
 # SFTP / SSH
 russh = "0.44"
-russh-keys = "0.44"
+russh-keys = "0.49"
 russh-sftp = "2"
 ssh-key = { version = "0.6", features = ["ed25519"] }
 
