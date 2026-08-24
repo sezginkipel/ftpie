@@ -417,6 +417,15 @@ CI (`.github/workflows/ci.yml`) runs all of the above on windows-latest (MSVC)
 and ubuntu-latest, and additionally validates that `tauri.conf.json` and the
 capability files parse and that every declared bundle icon exists.
 
+**Run `rustup update` before trusting a green local clippy.** CI tracks stable,
+so a toolchain even a few releases behind will miss lints that CI treats as
+errors — a stale local clippy passed this repo while CI failed on
+`unnecessary_sort_by` and `question_mark`.
+
+Line endings are LF everywhere, enforced by `.gitattributes` (`eol=lf`) because
+`rustfmt.toml` pins `newline_style = "Unix"`. Do not "fix" a diff by converting
+a file to CRLF; `cargo fmt --check` will reject it on every platform.
+
 Backend conventions: every `#[tauri::command]` returns `AppResult<T>`, errors
 carry a machine-readable `code` plus an English `message`, and all code comments
 are in English. Never call `.lock().unwrap()` — use the poison-tolerant helpers
