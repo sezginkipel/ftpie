@@ -1385,14 +1385,8 @@ fn split_symlink(raw: &str, is_symlink: bool) -> (String, Option<String>) {
 fn parse_mlsd_line(line: &str, dir: &str) -> Option<Entry> {
     let (facts_part, name) = match line.find("; ") {
         Some(idx) => (&line[..idx + 1], &line[idx + 2..]),
-        None => {
-            // Some servers emit the name with no facts at all.
-            if let Some(rest) = line.strip_prefix(' ') {
-                ("", rest)
-            } else {
-                return None;
-            }
-        }
+        // Some servers emit the name with no facts at all.
+        None => ("", line.strip_prefix(' ')?),
     };
     if name.trim().is_empty() {
         return None;

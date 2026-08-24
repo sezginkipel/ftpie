@@ -1,2 +1,31 @@
-# Auto detect text files and perform LF normalization
-* text=auto
+# Normalise to LF in the repository AND in every working tree, including
+# Windows. `text=auto` alone stores LF but checks out CRLF on Windows, which made
+# `cargo fmt --check` fail on the Windows runner: rustfmt.toml pins
+# `newline_style = "Unix"`, so it saw CRLF files and reported the wrong newline
+# style. Forcing `eol=lf` keeps the working tree consistent with both the
+# repository and rustfmt.
+* text=auto eol=lf
+
+# Windows-only shell scripts must keep CRLF or cmd.exe mis-parses them.
+*.bat text eol=crlf
+*.cmd text eol=crlf
+*.ps1 text eol=crlf
+
+# Binary: never touch these.
+*.png binary
+*.ico binary
+*.icns binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.webp binary
+*.woff binary
+*.woff2 binary
+*.ttf binary
+*.otf binary
+*.pdf binary
+*.zip binary
+*.gz binary
+*.msi binary
+*.exe binary
+*.dll binary

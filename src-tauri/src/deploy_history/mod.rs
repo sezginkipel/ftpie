@@ -123,7 +123,7 @@ impl DeployHistoryStore {
                 let mut records = file.records;
                 // Tolerate a hand-edited file: normalise the ordering the rest of
                 // the module relies on.
-                records.sort_by(|a, b| b.timestamp.cmp(&a.timestamp));
+                records.sort_by_key(|r| std::cmp::Reverse(r.timestamp));
                 records.truncate(MAX_RECORDS);
                 Self {
                     path,
